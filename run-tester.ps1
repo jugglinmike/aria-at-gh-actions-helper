@@ -50,10 +50,7 @@ $atprocess = Start-Job -Init ([ScriptBlock]::Create("Set-Location '$pwd\nvda-at-
 Write-Output "Waiting for localhost:3031 to start from at-driver"
 Wait-For-HTTP-Response -RequestURL http://localhost:3031
 
-Write-Output "Starting chromedriver"
-$chromeprocess = Start-Job -Init ([ScriptBlock]::Create("Set-Location '$pwd'")) -ScriptBlock { chromedriver --port=4444 --log-level=INFO *>&1 >$using:loglocation\chromedriver.log }
-Write-Output "Waiting for localhost:4444 to start from chromedriver"
-Wait-For-HTTP-Response -RequestURL http://localhost:4444/
+. .\start-$env:BROWSER.ps1
 
 function Trace-Logs {
   if ($env:RUNNER_DEBUG)
@@ -63,9 +60,9 @@ function Trace-Logs {
     Write-Output "--at-driver.log"
     Get-Content -Path $loglocation\at-driver.log -ErrorAction Continue
     Write-Output "chromedriver job process log:"
-    Receive-Job $chromeprocess
-    Write-Output "--chromedriver.log"
-    Get-Content -Path $loglocation\chromedriver.log -ErrorAction Continue
+    Receive-Job $webdriverprocess
+    Write-Output "--webdriver.log"
+    Get-Content -Path $loglocation\webdriver.log -ErrorAction Continue
     Write-Output "--nvda.log"
     Get-Content -Path $env:TEMP\nvda.log -ErrorAction Continue
   }
@@ -89,7 +86,7 @@ $bmp.Save("$loglocation\test.png")
 
 Write-Output "Launching automation-harness host"
 $hostParams = "--debug"
-node aria-at-automation-harness/bin/host.js  run-plan --plan-workingdir aria-at/build/$env:ARIA_AT_WORK_DIR $env:ARIA_AT_TEST_PATTERN $hostParams --agent-web-driver-url=http://127.0.0.1:4444 --agent-at-driver-url=ws://127.0.0.1:3031/command --reference-hostname=127.0.0.1 --agent-web-driver-browser=chrome | Tee-Object -FilePath $loglocation\harness-run.log
+node aria-at-automation-harness/bin/host.js  run-plan --plan-workingdir aria-at/build/$env:ARIA_AT_WORK_DIR $env:ARIA_AT_TEST_PATTERN $hostParams --agent-web-driver-url=http://127.0.0.1:4444 --agent-at-driver-url=ws://127.0.0.1:3031/command --reference-hostname=127.0.0.1 --agent-web-driver-browser=$env:BROWSER | Tee-Object -FilePath $loglocation\harness-run.log
 
 $graphics.CopyFromScreen($bounds.Location, [Drawing.Point]::Empty, $bounds.size)
 $bmp.Save("$loglocation\test2.png")
