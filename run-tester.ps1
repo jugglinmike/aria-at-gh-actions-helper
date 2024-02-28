@@ -59,7 +59,7 @@ function Trace-Logs {
     Receive-Job $atprocess
     Write-Output "--at-driver.log"
     Get-Content -Path $loglocation\at-driver.log -ErrorAction Continue
-    Write-Output "chromedriver job process log:"
+    Write-Output "WebDriver server job process log:"
     Receive-Job $webdriverprocess
     Write-Output "--webdriver.log"
     Get-Content -Path $loglocation\webdriver.log -ErrorAction Continue
