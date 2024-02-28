@@ -50,7 +50,6 @@ $atprocess = Start-Job -Init ([ScriptBlock]::Create("Set-Location '$pwd\nvda-at-
 Write-Output "Waiting for localhost:3031 to start from at-driver"
 Wait-For-HTTP-Response -RequestURL http://localhost:3031
 
-
 switch ($env:BROWSER)
 {
   chrome
@@ -73,9 +72,7 @@ switch ($env:BROWSER)
   {
     throw "Unknown browser"
   }
-
 }
-. .\start-$env:BROWSER.ps1
 
 function Trace-Logs {
   if ($env:RUNNER_DEBUG)
