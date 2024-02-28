@@ -64,9 +64,7 @@ jobs:
   nvda-test:
     runs-on: windows-2022
     steps:
-      - name: setup masks
-        shell: powershell
-        run: echo "::add-mask::$env:ARIA_AT_CALLBACK_HEADER"
+
       - name: Log job state QUEUED
         shell: powershell
         if: inputs.status_url
@@ -98,6 +96,17 @@ jobs:
           repository: "w3c/aria-at-automation-harness"
           ref: "main"
           path: "aria-at-automation-harness"
+
+      - name: Download nvda-portable zip
+        uses: robinraju/release-downloader@v1.9
+        id: nvda-portable-download
+        with:
+          repository: "bocoup/aria-at-automation-nvda-builds"
+          latest: true
+          tarBall: false
+          zipBall: false
+          out-file-path: "nvda-portable"
+          extract: false
 
       - name: Use Node.js 16.x
         uses: actions/setup-node@v3
@@ -169,6 +178,8 @@ jobs:
       - name: Run harness
         shell: powershell
         continue-on-error: true
+        env:
+          NVDA_PORTABLE_ZIP: ${{ fromJson(steps.nvda-portable-download.outputs.downloaded_files)[0] }}
         run: |
           & .\run-tester.ps1
 

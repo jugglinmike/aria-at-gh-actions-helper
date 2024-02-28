@@ -1,18 +1,18 @@
 
-[string]$nvdaVersion = "2023.3"
+[string]$nvdaVersion = [System.IO.Path]::GetFileNameWithoutExtension($env:NVDA_PORTABLE_ZIP)
 $loglocation = $pwd
 
 Write-Output "Log folder $loglocation"
-
-Expand-Archive -Path $loglocation\nvda-portable\$nvdaVersion.zip -DestinationPath nvda-portable\
 
 $nvdaParams = ""
 if ($env:RUNNER_DEBUG)
 {
   $nvdaParams = "--debug-logging"
 }
-Write-Output "Starting NVDA"
-& "nvda-portable\$nvdaVersion\NVDA.exe" $nvdaParams
+[string]$nvdaFolder = [System.IO.Path]::GetDirectoryName($env:NVDA_PORTABLE_ZIP)
+Expand-Archive -Path "$env:NVDA_PORTABLE_ZIP" -DestinationPath "$nvdaFolder"
+Write-Output "Starting NVDA $nvdaVersion - $nvdaFolder\$nvdaVersion\nvda.exe"
+& "$nvdaFolder\$nvdaVersion\nvda.exe" $nvdaParams
 
 # Retries to connect to an http url, allowing for any valid "response" (4xx,5xx,etc also valid)
 function Wait-For-HTTP-Response {
