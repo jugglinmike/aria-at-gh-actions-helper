@@ -1,7 +1,7 @@
 # This workflow will do a clean install of node dependencies, cache/restore them, build the source code and run tests across different versions of node
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
 
-name: nvda-chrome
+name: nvda-test
 on:
   workflow_dispatch:
     inputs:
@@ -41,6 +41,11 @@ on:
           with status updates.
         required: false
         type: string
+      browser:
+        description: |
+          The browser to use for testing, "chrome" or "firefox", default "chrome"
+        required: false
+        type: string
 
   # seems if push is enabled, I'm not able to trigger via workflow_dispatch?
   # push:
@@ -53,10 +58,10 @@ env:
   ARIA_AT_CALLBACK_URL: ${{ inputs.callback_url }}
   ARIA_AT_STATUS_URL: ${{ inputs.status_url }}
   ARIA_AT_CALLBACK_HEADER: ${{ inputs.callback_header || 'x-header-param:empty' }}
-  BROWSER: chrome
+  BROWSER: ${{ inputs.browser || 'chrome' }}
 
 jobs:
-  nvda-chrome:
+  nvda-test:
     runs-on: windows-2022
     steps:
       - name: setup masks
@@ -100,12 +105,15 @@ jobs:
           node-version: 16.x
           cache: "npm"
           cache-dependency-path: "**/package-lock.json"
+
       - uses: browser-actions/setup-chrome@v1
+        if: (inputs.browser || 'chrome') == 'chrome'
         with:
           chrome-version: stable
-        id: setup-chrome
-      - run: |
-          echo "Installed chromium version: ${{ steps.setup-chrome.outputs.chrome-version }} ${{ steps.setup-chrome.outputs.chrome-path }}"
+
+      - uses: browser-actions/setup-firefox@v1
+        if: inputs.browser == 'firefox'
+
       # Installing Scream as a virtual audio driver to avoid exceptions later
       - name: Install Scream (Virtual Audio Driver)
         shell: powershell
