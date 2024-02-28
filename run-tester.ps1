@@ -50,6 +50,31 @@ $atprocess = Start-Job -Init ([ScriptBlock]::Create("Set-Location '$pwd\nvda-at-
 Write-Output "Waiting for localhost:3031 to start from at-driver"
 Wait-For-HTTP-Response -RequestURL http://localhost:3031
 
+
+switch ($env:BROWSER)
+{
+  chrome
+  {
+    Write-Output "Starting chromedriver"
+    $webdriverprocess = Start-Job -Init ([ScriptBlock]::Create("Set-Location '$pwd'")) -ScriptBlock { chromedriver --port=4444 --log-level=INFO *>&1 >$using:loglocation\webdriver.log }
+    Write-Output "Waiting for localhost:4444 to start from chromedriver"
+    Wait-For-HTTP-Response -RequestURL http://localhost:4444/
+    Break
+  }
+  firefox
+  {
+    Write-Output "Starting geckodriver"
+    $webdriverprocess = Start-Job -Init ([ScriptBlock]::Create("Set-Location '$pwd'")) -ScriptBlock { geckodriver *>&1 >$using:loglocation\webdriver.log }
+    Write-Output "Waiting for localhost:4444 to start from geckodriver"
+    Wait-For-HTTP-Response -RequestURL http://localhost:4444/
+    Break
+  }
+  default
+  {
+    throw "Unknown browser"
+  }
+
+}
 . .\start-$env:BROWSER.ps1
 
 function Trace-Logs {
