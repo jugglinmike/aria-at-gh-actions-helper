@@ -74,23 +74,23 @@ jobs:
           Invoke-WebRequest $env:ARIA_AT_STATUS_URL -Headers $headers -Method 'POST' -Body $body
 
       # Checkout all repos first (helps cache purposes)
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Checkout nvda-at-automation driver
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: "Prime-Access-Consulting/nvda-at-automation"
           path: "nvda-at-automation"
 
       - name: Checkout aria-at ref ${{ inputs.aria_at_ref || 'master' }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: "w3c/aria-at"
           path: "aria-at"
           ref: ${{ inputs.aria_at_ref || 'master' }}
 
       - name: Checkout aria-at-automation-harness
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: "w3c/aria-at-automation-harness"
           ref: "main"
@@ -107,10 +107,10 @@ jobs:
           out-file-path: "nvda-portable"
           extract: false
 
-      - name: Use Node.js 16.x
-        uses: actions/setup-node@v3
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v4
         with:
-          node-version: 16.x
+          node-version: 20.x
           cache: "npm"
           cache-dependency-path: "**/package-lock.json"
 
@@ -192,7 +192,7 @@ jobs:
           Invoke-WebRequest $env:ARIA_AT_STATUS_URL -Headers $headers -Method 'POST' -Body $body
 
       - name: upload *.{log,png}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: logs
           path: |
