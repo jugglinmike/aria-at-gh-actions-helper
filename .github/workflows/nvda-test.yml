@@ -64,9 +64,6 @@ jobs:
   nvda-test:
     runs-on: windows-2022
     steps:
-      - name: setup masks
-        shell: powershell
-        run: echo "::add-mask::$env:ARIA_AT_CALLBACK_HEADER"
       - name: Log job state QUEUED
         shell: powershell
         if: inputs.status_url
