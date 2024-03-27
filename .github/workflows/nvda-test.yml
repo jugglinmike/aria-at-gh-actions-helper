@@ -176,15 +176,23 @@ jobs:
 
       - name: Run harness
         shell: powershell
-        continue-on-error: true
         env:
           NVDA_PORTABLE_ZIP: ${{ fromJson(steps.nvda-portable-download.outputs.downloaded_files)[0] }}
         run: |
           & .\run-tester.ps1
 
+      - name: Log job state ERROR
+        shell: powershell
+        if: ${{ failure() && inputs.status_url }}
+        run: |
+          $headerbits = $env:ARIA_AT_CALLBACK_HEADER -split ":\s*", 2
+          $headers = @{$headerbits[0]=$headerbits[1]; "Content-Type" = "application/json"}
+          $body = @{'status'='ERROR'; 'externalLogsUrl'="$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"} | ConvertTo-JSON
+          Invoke-WebRequest $env:ARIA_AT_STATUS_URL -Headers $headers -Method 'POST' -Body $body
+
       - name: Log job state COMPLETED
         shell: powershell
-        if: inputs.status_url
+        if: ${{ success() && inputs.status_url }}
         run: |
           $headerbits = $env:ARIA_AT_CALLBACK_HEADER -split ":\s*", 2
           $headers = @{$headerbits[0]=$headerbits[1]; "Content-Type" = "application/json"}
@@ -193,6 +201,7 @@ jobs:
 
       - name: upload *.{log,png}
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: logs
           path: |
