@@ -183,7 +183,7 @@ jobs:
 
       - name: Log job state ERROR
         shell: powershell
-        if: ${{ failure() && inputs.status_url }}
+        if: failure() && inputs.status_url
         run: |
           $headerbits = $env:ARIA_AT_CALLBACK_HEADER -split ":\s*", 2
           $headers = @{$headerbits[0]=$headerbits[1]; "Content-Type" = "application/json"}
@@ -192,7 +192,7 @@ jobs:
 
       - name: Log job state COMPLETED
         shell: powershell
-        if: ${{ success() && inputs.status_url }}
+        if: success() && inputs.status_url
         run: |
           $headerbits = $env:ARIA_AT_CALLBACK_HEADER -split ":\s*", 2
           $headers = @{$headerbits[0]=$headerbits[1]; "Content-Type" = "application/json"}
