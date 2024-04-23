@@ -1,0 +1,36 @@
+name: voiceover-test
+on:
+  push:
+    branches:
+      - voiceover
+
+jobs:
+  nvda-test:
+    runs-on: macos-13
+    steps:
+      # Checkout all repos first (helps cache purposes)
+      - uses: actions/checkout@v4
+
+      - name: Checkout aria-at-automation-driver
+        uses: actions/checkout@v4
+        with:
+          repository: "w3c/aria-at-automation-driver"
+          ref: "automate-darwin-ci-install"
+          path: "aria-at-automation-driver"
+
+      - name: Use Node.js 18.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18.x
+          cache: "npm"
+          cache-dependency-path: "**/package-lock.json"
+
+      - name: "automation-driver: npm install"
+        run: |
+          cd aria-at-automation-driver
+          npm install
+
+      - name: "automation-driver: install"
+        run: |
+          cd aria-at-automation-driver
+          ./bin/at-driver install --unattended
