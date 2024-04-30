@@ -11,12 +11,11 @@ jobs:
       # Checkout all repos first (helps cache purposes)
       - uses: actions/checkout@v4
 
-      - name: Checkout aria-at-automation-driver
-        uses: actions/checkout@v4
+      - uses: robinraju/release-downloader@v1.10
         with:
-          repository: "w3c/aria-at-automation-driver"
-          ref: "automate-darwin-ci-install"
-          path: "aria-at-automation-driver"
+          repository: 'w3c/aria-at-automation-driver'
+          tag: 'v0.0.0-beta'
+          extract: true
 
       - name: Use Node.js 18.x
         uses: actions/setup-node@v4
