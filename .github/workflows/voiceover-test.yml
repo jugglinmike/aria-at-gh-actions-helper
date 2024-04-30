@@ -19,7 +19,7 @@ jobs:
           out-file-path: aria-at-automation-driver
 
       - name: debug
-        working-directory: aria-at-automation-driver
+        working-directory: aria-at-automation-driver/package
         run: ls -lah
 
       - name: Use Node.js 18.x
@@ -30,12 +30,11 @@ jobs:
           cache-dependency-path: "**/package-lock.json"
 
       - name: "automation-driver: npm install"
-        run: |
-          cd aria-at-automation-driver
-          npm install
+        working-directory: aria-at-automation-driver/package
+        run: npm install
 
       - name: "automation-driver: install"
         env:
           DEBUG: '*'
-        working-directory: aria-at-automation-driver
+        working-directory: aria-at-automation-driver/package
         run: ./bin/at-driver install --unattended
