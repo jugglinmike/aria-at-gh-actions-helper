@@ -16,6 +16,7 @@ jobs:
           repository: 'w3c/aria-at-automation-driver'
           tag: 'v0.0.1-beta'
           extract: true
+          out-file-path: aria-at-automatoin-driver
 
       - name: Use Node.js 18.x
         uses: actions/setup-node@v4
@@ -30,6 +31,7 @@ jobs:
           npm install
 
       - name: "automation-driver: install"
-        run: |
-          cd aria-at-automation-driver
-          ./bin/at-driver install --unattended
+        env:
+          DEBUG: *
+        working-directory: aria-at-automation-driver
+        run: ./bin/at-driver install --unattended
