@@ -18,6 +18,10 @@ jobs:
           extract: true
           out-file-path: aria-at-automation-driver
 
+      - name: debug
+        working-directory: aria-at-automation-driver
+        run: ls -lah
+
       - name: Use Node.js 18.x
         uses: actions/setup-node@v4
         with:
