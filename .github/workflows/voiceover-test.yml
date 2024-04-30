@@ -32,6 +32,6 @@ jobs:
 
       - name: "automation-driver: install"
         env:
-          DEBUG: *
+          DEBUG: '*'
         working-directory: aria-at-automation-driver
         run: ./bin/at-driver install --unattended
