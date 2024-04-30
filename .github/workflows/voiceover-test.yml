@@ -16,7 +16,7 @@ jobs:
           repository: 'w3c/aria-at-automation-driver'
           tag: 'v0.0.1-beta'
           extract: true
-          out-file-path: aria-at-automatoin-driver
+          out-file-path: aria-at-automation-driver
 
       - name: Use Node.js 18.x
         uses: actions/setup-node@v4
