@@ -30,7 +30,8 @@ jobs:
         run: npm install
 
       - name: Review registered components (before install)
-        run: /System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister -dump | awk '/^bundle id: *ATDriver/,/^-+$/'
+        run: |
+          /System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister -dump | awk '/^bundle id: *ATDriver/,/^-+$/'
 
       - name: "automation-driver: install"
         env:
@@ -39,7 +40,8 @@ jobs:
         run: ./bin/at-driver install --unattended
 
       - name: Review registered components (after install)
-        run: /System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister -dump | awk '/^bundle id: *ATDriver/,/^-+$/'
+        run: |
+          /System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister -dump | awk '/^bundle id: *ATDriver/,/^-+$/'
 
       - name: Start AT Driver server
         working-directory: aria-at-automation-driver/package
