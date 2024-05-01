@@ -41,14 +41,9 @@ jobs:
 
       - name: Start AT Driver server
         working-directory: aria-at-automation-driver/package
-        run: ./bin/at-driver serve 2> output.txt &
-
-      - name: Say something
-        run: say Something!
-
-      - name: Check for output
-        working-directory: aria-at-automation-driver/package
-        run: cat output.txt
-
-      - name: Kill AT Driver server
-        run: kill %%
+        run: |
+          ./bin/at-driver serve 2> output.txt &
+          sleep 4
+          say Something!
+          cat output.txt
+          kill %%
