@@ -54,9 +54,11 @@ jobs:
       - name: Start AT Driver server
         working-directory: aria-at-automation-driver/package
         run: |
-          sleep 20
+          date
+          sleep 60
           ./bin/at-driver serve 2> output.txt &
-          sleep 20
+          date
+          sleep 60
           say Something!
           cat output.txt
           kill %%
