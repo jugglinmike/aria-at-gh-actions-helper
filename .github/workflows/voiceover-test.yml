@@ -25,11 +25,15 @@ jobs:
           cache: "npm"
           cache-dependency-path: "**/package-lock.json"
 
+      - name: Review registered components (before npm install)
+        run: |
+          /System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister -dump | awk '/^bundle id: *ATDriver/,/^-+$/'
+
       - name: "automation-driver: npm install"
         working-directory: aria-at-automation-driver/package
         run: npm install
 
-      - name: Review registered components (before install)
+      - name: Review registered components (before binary install)
         run: |
           /System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister -dump | awk '/^bundle id: *ATDriver/,/^-+$/'
 
@@ -39,7 +43,7 @@ jobs:
         working-directory: aria-at-automation-driver/package
         run: ./bin/at-driver install --unattended
 
-      - name: Review registered components (after install)
+      - name: Review registered components (after binary install)
         run: |
           /System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister -dump | awk '/^bundle id: *ATDriver/,/^-+$/'
 
