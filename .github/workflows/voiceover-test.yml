@@ -18,10 +18,6 @@ jobs:
           extract: true
           out-file-path: aria-at-automation-driver
 
-      - name: debug
-        working-directory: aria-at-automation-driver/package
-        run: ls -lah
-
       - name: Use Node.js 18.x
         uses: actions/setup-node@v4
         with:
@@ -33,11 +29,17 @@ jobs:
         working-directory: aria-at-automation-driver/package
         run: npm install
 
+      - name: Review registered components (before install)
+        run: /System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister -dump | awk '/^bundle id: *ATDriver/,/^-+$/'
+
       - name: "automation-driver: install"
         env:
           DEBUG: '*'
         working-directory: aria-at-automation-driver/package
         run: ./bin/at-driver install --unattended
+
+      - name: Review registered components (after install)
+        run: /System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister -dump | awk '/^bundle id: *ATDriver/,/^-+$/'
 
       - name: Start AT Driver server
         working-directory: aria-at-automation-driver/package
