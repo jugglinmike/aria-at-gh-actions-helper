@@ -51,14 +51,6 @@ jobs:
         run: |
           /System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister -dump | awk '/^bundle id: *ATDriver/,/^-+$/'
 
-      - name: Start AT Driver server
+      - name: Wait for server to be ready
         working-directory: aria-at-automation-driver/package
-        run: |
-          date
-          sleep 60
-          ./bin/at-driver serve 2> output.txt &
-          date
-          sleep 60
-          say Something!
-          cat output.txt
-          kill %%
+        run: ../../wait-for-server.sh
