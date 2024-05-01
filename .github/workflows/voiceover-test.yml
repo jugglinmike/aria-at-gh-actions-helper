@@ -11,6 +11,10 @@ jobs:
       # Checkout all repos first (helps cache purposes)
       - uses: actions/checkout@v4
 
+      - name: Review registered components (before fetching release)
+        run: |
+          /System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister -dump | awk '/^bundle id: *ATDriver/,/^-+$/'
+
       - uses: robinraju/release-downloader@v1.10
         with:
           repository: 'w3c/aria-at-automation-driver'
