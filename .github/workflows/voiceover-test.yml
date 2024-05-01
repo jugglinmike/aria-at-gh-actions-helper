@@ -5,7 +5,7 @@ on:
       - voiceover
 
 jobs:
-  nvda-test:
+  voiceover-test:
     runs-on: macos-13
     steps:
       # Checkout all repos first (helps cache purposes)
