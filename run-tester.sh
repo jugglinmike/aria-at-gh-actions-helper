@@ -23,5 +23,5 @@ node aria-at-automation-harness/bin/host.js run-plan \
   --agent-at-driver-url=ws://127.0.0.1:3031/command \
   --reference-hostname=127.0.0.1 \
   --agent-web-driver-browser=${BROWSER} \
-  ${ARIA_AT_TEST_PATTERN} | \
+  ${ARIA_AT_TEST_PATTERN} 2>&1 | \
     tee harness-run.log
