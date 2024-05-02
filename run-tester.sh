@@ -6,7 +6,7 @@ set -e
 
 safaridriver_pid=$!
 
-aria-at-automation-driver/package/bin/at-driver serve > at-driver.log 2>&1 &
+aria-at-automation-driver/package/bin/at-driver serve --port 3031 > at-driver.log 2>&1 &
 
 atdriver_pid=$!
 
