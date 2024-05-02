@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 /usr/bin/safaridriver --port 4444 > webdriver.log 2>&1 &
 
