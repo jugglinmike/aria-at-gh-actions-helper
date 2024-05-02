@@ -41,7 +41,7 @@ jobs:
 
       # https://developer.apple.com/documentation/webkit/testing_with_webdriver_in_safari
       - name: Enable SafariDriver
-        run: /usr/bin/safaridriver
+        run: /usr/bin/safaridriver --enable
 
           #- name: Checkout aria-at ref ${{ inputs.aria_at_ref || 'master' }}
           #  uses: actions/checkout@v4
