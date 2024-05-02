@@ -43,31 +43,42 @@ jobs:
       - name: Enable SafariDriver
         run: sudo /usr/bin/safaridriver --enable
 
-          #- name: Checkout aria-at ref ${{ inputs.aria_at_ref || 'master' }}
-          #  uses: actions/checkout@v4
-          #  with:
-          #    repository: "w3c/aria-at"
-          #    path: "aria-at"
-          #    ref: ${{ inputs.aria_at_ref || 'master' }}
+      - name: Checkout aria-at ref ${{ inputs.aria_at_ref || 'master' }}
+        uses: actions/checkout@v4
+        with:
+          repository: "w3c/aria-at"
+          path: "aria-at"
 
-          #- name: Setup Environment
-          #  uses: guidepup/setup-action@0.15.3
+      - name: Setup Environment
+        uses: guidepup/setup-action@0.15.3
 
-          #- name: Checkout aria-at-automation-harness
-          #  uses: actions/checkout@v4
-          #  with:
-          #    repository: "w3c/aria-at-automation-harness"
-          #    ref: "main"
-          #    path: "aria-at-automation-harness"
+      - name: Checkout aria-at-automation-harness
+        uses: actions/checkout@v4
+        with:
+          repository: "w3c/aria-at-automation-harness"
+          ref: "main"
+          path: "aria-at-automation-harness"
 
-          #- name: "aria-at: npm install"
-          #  shell: powershell
-          #  run: |
-          #    cd aria-at
-          #    npm install
+      - name: "aria-at: npm install"
+        working-directory: aria-at
+        run: npm install
 
-          #- name: "aria-at: npm run build"
-          #  shell: powershell
-          #  run: |
-          #    cd aria-at
-          #    npm run build
+      - name: "aria-at: npm run build"
+        working-directory: aria-at
+        run: npm run build
+
+      - name: Run tests
+        env:
+          ARIA_AT_TEST_PATTERN: '{reference/**,test-*-nvda.*}'
+          ARIA_AT_WORK_DIR: tests/alert
+          BROWSER: safari
+        run: ./run-tester.sh
+
+      - name: upload *.{log,png}
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: logs
+          path: |
+            *.log
+            *.png
