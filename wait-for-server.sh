@@ -20,14 +20,13 @@ for attempt in $(seq ${max_attempts}); do
   kill -9 %%
 
   if grep --silent 'This text came from the say command.' ${temp_file}; then
-    echo The server is ready.
+    echo The server is ready. Text observed:
+    cat ${temp_file} | sed 's/^/> /'
     break
   fi
 
   echo The server is not ready. Text observed:
-  echo
   cat ${temp_file} | sed 's/^/> /'
-  echo
 
   if [ ${attempt} == ${max_attempts} ]; then
     echo Failed after ${attempt} attempts. >&2
