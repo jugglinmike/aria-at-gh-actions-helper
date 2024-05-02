@@ -67,6 +67,10 @@ jobs:
         working-directory: aria-at
         run: npm run build
 
+      - name: "automation-harness: npm install"
+        working-directory: aria-at-automation-harness
+        run: npm install
+
       - name: Run tests
         env:
           ARIA_AT_TEST_PATTERN: '{reference/**,test-*-nvda.*}'
