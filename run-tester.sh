@@ -11,8 +11,8 @@ aria-at-automation-driver/package/bin/at-driver serve --port 3031 > at-driver.lo
 atdriver_pid=$!
 
 function clean_up {
-  kill -9 ${safaridriver_pid}
-  kill -9 ${atdriver_pid}
+  kill -9 ${safaridriver_pid} || true
+  kill -9 ${atdriver_pid} || true
 }
 trap clean_up EXIT
 
