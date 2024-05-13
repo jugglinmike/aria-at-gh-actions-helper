@@ -20,7 +20,7 @@ node aria-at-automation-harness/bin/host.js run-plan \
   --plan-workingdir aria-at/build/${ARIA_AT_WORK_DIR} \
   --debug \
   --agent-web-driver-url=http://127.0.0.1:4444 \
-  --agent-at-driver-url=ws://127.0.0.1:3031/command \
+  --agent-at-driver-url=ws://127.0.0.1:3031/session \
   --reference-hostname=127.0.0.1 \
   --agent-web-driver-browser=${BROWSER} \
   ${ARIA_AT_TEST_PATTERN} 2>&1 | \
