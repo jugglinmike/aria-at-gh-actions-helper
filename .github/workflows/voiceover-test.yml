@@ -42,10 +42,6 @@ jobs:
         working-directory: aria-at-automation-driver/package
         run: ../../wait-for-server.sh
 
-      # https://developer.apple.com/documentation/webkit/testing_with_webdriver_in_safari
-      - name: Enable SafariDriver
-        run: sudo /usr/bin/safaridriver --enable
-
       - name: Checkout aria-at ref ${{ inputs.aria_at_ref || 'master' }}
         uses: actions/checkout@v4
         with:
