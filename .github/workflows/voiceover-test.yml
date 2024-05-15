@@ -25,9 +25,6 @@ jobs:
           cache: "npm"
           cache-dependency-path: "**/package-lock.json"
 
-      - name: Setup Environment
-        uses: guidepup/setup-action@0.15.3
-
       - name: "automation-driver: npm install"
         working-directory: aria-at-automation-driver/package
         run: npm install
