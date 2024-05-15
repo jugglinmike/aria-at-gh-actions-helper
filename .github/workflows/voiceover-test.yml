@@ -70,6 +70,10 @@ jobs:
       - name: Start VoiceOver
         run: "/System/Library/CoreServices/VoiceOver.app/Contents/MacOS/VoiceOverStarter"
 
+        # https://stackoverflow.com/questions/37802673/allow-javascript-from-apple-events-in-safari-through-terminal-mac
+      - name: Configure Safari to Allow JavaScript from Apple Events
+        run: defaults write -app Safari AllowJavaScriptFromAppleEvents 1
+
       - name: Run tests
         env:
           ARIA_AT_TEST_PATTERN: '{reference/**,test-*-voiceover_macos.*}'
