@@ -22,6 +22,6 @@ node aria-at-automation-harness/bin/host.js run-plan \
   --agent-web-driver-url=${url_placeholder} \
   --agent-at-driver-url=ws://127.0.0.1:3031/session \
   --reference-hostname=127.0.0.1 \
-  --agent-web-driver-browser=${BROWSER} \
-  ${ARIA_AT_TEST_PATTERN} 2>&1 | \
+  --agent-web-driver-browser=safari \
+  '{reference/**,test-*-voiceover_macos.*}' 2>&1 | \
     tee harness-run.log

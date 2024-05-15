@@ -81,9 +81,7 @@ jobs:
 
       - name: Run tests
         env:
-          ARIA_AT_TEST_PATTERN: '{reference/**,test-*-voiceover_macos.*}'
           ARIA_AT_WORK_DIR: tests/alert
-          BROWSER: safari
         run: ./run-tester.sh
 
       - name: upload *.{log,png}
