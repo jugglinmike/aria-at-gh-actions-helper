@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# After installing the AT Driver server and registering its various components,
+# the macOS operating system performs some asynchronous tasks which are
+# necessary for the server's proper functioning. This script pauses until those
+# tasks have completed by repeatedly testing whether the server behaves as
+# expected.
+
 set -e
 
 max_attempts=20
