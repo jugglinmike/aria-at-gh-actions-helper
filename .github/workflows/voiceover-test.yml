@@ -70,6 +70,11 @@ jobs:
       - name: Start VoiceOver
         run: "/System/Library/CoreServices/VoiceOver.app/Contents/MacOS/VoiceOverStarter"
 
+        # This feature must be enabled in order for the harness to inspect the
+        # the page (AppleScript is used for this purpose instead of
+        # SafariDriver because SafariDriver implements a "glass pane" which
+        # rejects the kinds of interactions--namely, key presses--that ARIA-AT
+        # tests must simulate.
         # https://stackoverflow.com/questions/37802673/allow-javascript-from-apple-events-in-safari-through-terminal-mac
       - name: Configure Safari to Allow JavaScript from Apple Events
         run: defaults write -app Safari AllowJavaScriptFromAppleEvents 1
