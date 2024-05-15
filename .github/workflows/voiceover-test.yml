@@ -43,6 +43,10 @@ jobs:
   voiceover-test:
     runs-on: macos-13
     steps:
+      - name: Log job state QUEUED
+        if: inputs.status_url
+        run: ./report-status.sh QUEUED ''
+
       # Checkout all repos first (helps cache purposes)
       - uses: actions/checkout@v4
 
@@ -114,8 +118,20 @@ jobs:
       - name: Configure Safari to Allow JavaScript from Apple Events
         run: defaults write -app Safari AllowJavaScriptFromAppleEvents 1
 
+      - name: Log job state RUNNING
+        if: inputs.status_url
+        run: ./report-status.sh RUNNING "\"work_dir\": \"${ARIA_AT_WORK_DIR}\","
+
       - name: Run harness
         run: ./run-tester.sh
+
+      - name: Log job state ERROR
+        if: failure() && inputs.status_url
+        run: ./report-status.sh ERROR ''
+
+      - name: Log job state COMPLETED
+        if: success() && inputs.status_url
+        run: ./report-status.sh COMPLETED ''
 
       - name: upload *.{log,png}
         uses: actions/upload-artifact@v4
