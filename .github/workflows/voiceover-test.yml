@@ -79,7 +79,7 @@ jobs:
       - name: Configure Safari to Allow JavaScript from Apple Events
         run: defaults write -app Safari AllowJavaScriptFromAppleEvents 1
 
-      - name: Run tests
+      - name: Run harness
         env:
           ARIA_AT_WORK_DIR: tests/alert
         run: ./run-tester.sh
