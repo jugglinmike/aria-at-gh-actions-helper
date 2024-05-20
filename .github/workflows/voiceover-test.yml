@@ -119,7 +119,7 @@ jobs:
 
       - name: Log job state RUNNING
         if: inputs.status_url
-        run: ./report-status.sh RUNNING "\"work_dir\": \"${ARIA_AT_WORK_DIR}\","
+        run: './report-status.sh RUNNING "\"work_dir\": \"${ARIA_AT_WORK_DIR}\","'
 
       - name: Run harness
         run: ./run-tester.sh
