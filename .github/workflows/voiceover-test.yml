@@ -11,13 +11,10 @@ env:
   ARIA_AT_CALLBACK_HEADER: 'x-header-param:empty'
 
 jobs:
-  permissions-13:
-    runs-on: macos-13
-    steps:
-      - name: Check permissions
-        run: ls -lah /usr/local/var
   permissions-14:
     runs-on: macos-14
     steps:
       - name: Check permissions
-        run: ls -lah /usr/local/var
+        run: ls -lahd /usr/local
+      - name: Check permissions
+        run: ls -lahd /usr/local/var
