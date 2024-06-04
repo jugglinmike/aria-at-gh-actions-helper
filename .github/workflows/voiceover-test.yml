@@ -41,7 +41,7 @@ env:
 
 jobs:
   voiceover-test:
-    runs-on: macos-13
+    runs-on: macos-14
     steps:
 
       # Checkout all repos first (helps cache purposes)
