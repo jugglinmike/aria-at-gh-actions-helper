@@ -49,12 +49,6 @@ jobs:
         working-directory: aria-at-automation-driver/package
         run: ./bin/at-driver install --unattended
 
-      # This directory does not exist in macOS 14
-      - name: Create var directory
-        run: |
-          sudo mkdir /usr/local/var;
-          sudo chown $USER /usr/local/var
-
       - name: Wait for server to be ready
         working-directory: aria-at-automation-driver/package
         run: ../../wait-for-server.sh
