@@ -102,44 +102,17 @@ jobs:
           ref: "main"
           path: "aria-at-automation-harness"
 
-      - name: Check NVDA version and download
-        id: nvda-download
-        shell: powershell
-        run: |
-          $version = "${{ env.NVDA_VERSION }}"
-          $repo = "bocoup/aria-at-automation-nvda-builds"
-          $apiUrl = "https://api.github.com/repos/$repo/releases"
-
-          # Fetch all releases and store them
-          $releases = Invoke-RestMethod -Uri $apiUrl
-
-          # Check if the specific version is available
-          $release = $releases | Where-Object { $_.tag_name -eq $version } | Select-Object -First 1
-
-          if ($null -eq $release) {
-              Write-Error "NVDA version $version not found in $repo. Available versions are: $($releases.tag_name -join ', ')"
-              exit 1
-          }
-
-          # Adjust the asset name pattern to match the actual asset names
-          $asset = $release.assets | Where-Object { $_.name -like "*.zip" } | Select-Object -First 1
-
-          if ($null -eq $asset) {
-              Write-Error "Zip file not found in release $($release.tag_name). Available assets are: $($release.assets.name -join ', ')"
-              exit 1
-          }
-
-          # Ensure the directory exists before downloading
-          $downloadPath = "nvda-portable"
-          if (-Not (Test-Path -Path $downloadPath)) {
-              New-Item -ItemType Directory -Path $downloadPath
-          }
-
-          # Proceed with download
-          $filePath = Join-Path -Path $downloadPath -ChildPath $asset.name
-          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $filePath
-          echo "nvda_zip=$($asset.name)" >> $env:GITHUB_OUTPUT
-          echo "nvda_version=$($release.tag_name)" >> $env:GITHUB_OUTPUT
+      - name: Download nvda-portable zip
+        uses: robinraju/release-downloader@v1.9
+        id: nvda-portable-download
+        with:
+          repository: "bocoup/aria-at-automation-nvda-builds"
+          latest: true
+          tarBall: false
+          zipBall: false
+          tag: ${{ inputs.nvda_version }}
+          out-file-path: "nvda-portable"
+          extract: false
 
       - name: Use Node.js 18.x
         uses: actions/setup-node@v4
@@ -212,7 +185,7 @@ jobs:
         shell: powershell
         timeout-minutes: 30
         env:
-          NVDA_PORTABLE_ZIP: ${{ steps.nvda-download.outputs.nvda_zip }}
+          NVDA_PORTABLE_ZIP: ${{ fromJson(steps.nvda-portable-download.outputs.downloaded_files)[0] }}
         run: |
           & .\run-tester.ps1
 
