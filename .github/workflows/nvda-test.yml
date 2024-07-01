@@ -121,7 +121,7 @@ jobs:
               exit 1
           }
 
-          # Check for the zip asset
+          # Adjust the asset name pattern to match the actual asset names
           $asset = $release.assets | Where-Object { $_.name -like "*.zip" } | Select-Object -First 1
 
           if ($null -eq $asset) {
@@ -129,8 +129,15 @@ jobs:
               exit 1
           }
 
+          # Ensure the directory exists before downloading
+          $downloadPath = "nvda-portable"
+          if (-Not (Test-Path -Path $downloadPath)) {
+              New-Item -ItemType Directory -Path $downloadPath
+          }
+
           # Proceed with download
-          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "nvda-portable\$($asset.name)"
+          $filePath = Join-Path -Path $downloadPath -ChildPath $asset.name
+          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $filePath
           echo "nvda_zip=$($asset.name)" >> $env:GITHUB_OUTPUT
           echo "nvda_version=$($release.tag_name)" >> $env:GITHUB_OUTPUT
 
