@@ -46,6 +46,11 @@ on:
           The browser to use for testing, "chrome" or "firefox", default "chrome"
         required: false
         type: string
+      nvda_version:
+        description: |
+          The specific version of NVDA to use (e.g., '2023.1'). If not provided, the latest version will be used.
+        required: false
+        type: string
 
   # seems if push is enabled, I'm not able to trigger via workflow_dispatch?
   # push:
@@ -59,6 +64,7 @@ env:
   ARIA_AT_STATUS_URL: ${{ inputs.status_url }}
   ARIA_AT_CALLBACK_HEADER: ${{ inputs.callback_header || 'x-header-param:empty' }}
   BROWSER: ${{ inputs.browser || 'chrome' }}
+  NVDA_VERSION: ${{ inputs.nvda_version }}
 
 jobs:
   nvda-test:
@@ -96,16 +102,38 @@ jobs:
           ref: "main"
           path: "aria-at-automation-harness"
 
-      - name: Download nvda-portable zip
-        uses: robinraju/release-downloader@v1.9
-        id: nvda-portable-download
-        with:
-          repository: "bocoup/aria-at-automation-nvda-builds"
-          latest: true
-          tarBall: false
-          zipBall: false
-          out-file-path: "nvda-portable"
-          extract: false
+      - name: Check NVDA version and download
+        id: nvda-download
+        shell: powershell
+        run: |
+          $version = "${{ env.NVDA_VERSION }}"
+          $repo = "bocoup/aria-at-automation-nvda-builds"
+          $apiUrl = "https://api.github.com/repos/$repo/releases"
+
+          if ([string]::IsNullOrEmpty($version)) {
+            $release = Invoke-RestMethod -Uri $apiUrl | Select-Object -First 1
+          } else {
+            $release = Invoke-RestMethod -Uri $apiUrl | Where-Object { $_.tag_name -eq $version } | Select-Object -First 1
+          }
+
+          if ($null -eq $release) {
+            Write-Error "NVDA version $version not found in $repo"
+            exit 1
+          }
+
+          $asset = $release.assets | Where-Object { $_.name -like "nvda-portable*.zip" } | Select-Object -First 1
+
+          if ($null -eq $asset) {
+            Write-Error "NVDA portable zip not found in release $($release.tag_name)"
+            exit 1
+          }
+
+          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "nvda-portable\$($asset.name)"
+          echo "nvda_zip=$($asset.name)" >> $env:GITHUB_OUTPUT
+          echo "nvda_version=$($release.tag_name)" >> $env:GITHUB_OUTPUT
+
+      - name: Log NVDA version
+        run: echo "Using NVDA version ${{ steps.nvda-download.outputs.nvda_version }}"
 
       - name: Use Node.js 18.x
         uses: actions/setup-node@v4
@@ -178,7 +206,7 @@ jobs:
         shell: powershell
         timeout-minutes: 30
         env:
-          NVDA_PORTABLE_ZIP: ${{ fromJson(steps.nvda-portable-download.outputs.downloaded_files)[0] }}
+          NVDA_PORTABLE_ZIP: ${{ steps.nvda-download.outputs.nvda_zip }}
         run: |
           & .\run-tester.ps1
 
