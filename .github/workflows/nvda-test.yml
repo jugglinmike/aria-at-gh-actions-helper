@@ -121,11 +121,11 @@ jobs:
               exit 1
           }
 
-          # Check for the asset with the expected name pattern
-          $asset = $release.assets | Where-Object { $_.name -like "nvda-portable*.zip" } | Select-Object -First 1
+          # Check for the zip asset
+          $asset = $release.assets | Where-Object { $_.name -like "*.zip" } | Select-Object -First 1
 
           if ($null -eq $asset) {
-              Write-Error "NVDA portable zip not found in release $($release.tag_name). Available assets are: $($release.assets.name -join ', ')"
+              Write-Error "Zip file not found in release $($release.tag_name). Available assets are: $($release.assets.name -join ', ')"
               exit 1
           }
 
@@ -133,9 +133,6 @@ jobs:
           Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "nvda-portable\$($asset.name)"
           echo "nvda_zip=$($asset.name)" >> $env:GITHUB_OUTPUT
           echo "nvda_version=$($release.tag_name)" >> $env:GITHUB_OUTPUT
-
-      - name: Log NVDA version
-        run: echo "Using NVDA version ${{ steps.nvda-download.outputs.nvda_version }}"
 
       - name: Use Node.js 18.x
         uses: actions/setup-node@v4
