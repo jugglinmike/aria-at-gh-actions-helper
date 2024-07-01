@@ -110,24 +110,26 @@ jobs:
           $repo = "bocoup/aria-at-automation-nvda-builds"
           $apiUrl = "https://api.github.com/repos/$repo/releases"
 
-          if ([string]::IsNullOrEmpty($version)) {
-            $release = Invoke-RestMethod -Uri $apiUrl | Select-Object -First 1
-          } else {
-            $release = Invoke-RestMethod -Uri $apiUrl | Where-Object { $_.tag_name -eq $version } | Select-Object -First 1
-          }
+          # Fetch all releases and store them
+          $releases = Invoke-RestMethod -Uri $apiUrl
+
+          # Check if the specific version is available
+          $release = $releases | Where-Object { $_.tag_name -eq $version } | Select-Object -First 1
 
           if ($null -eq $release) {
-            Write-Error "NVDA version $version not found in $repo"
-            exit 1
+              Write-Error "NVDA version $version not found in $repo. Available versions are: $($releases.tag_name -join ', ')"
+              exit 1
           }
 
+          # Check for the asset with the expected name pattern
           $asset = $release.assets | Where-Object { $_.name -like "nvda-portable*.zip" } | Select-Object -First 1
 
           if ($null -eq $asset) {
-            Write-Error "NVDA portable zip not found in release $($release.tag_name)"
-            exit 1
+              Write-Error "NVDA portable zip not found in release $($release.tag_name). Available assets are: $($release.assets.name -join ', ')"
+              exit 1
           }
 
+          # Proceed with download
           Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "nvda-portable\$($asset.name)"
           echo "nvda_zip=$($asset.name)" >> $env:GITHUB_OUTPUT
           echo "nvda_version=$($release.tag_name)" >> $env:GITHUB_OUTPUT
