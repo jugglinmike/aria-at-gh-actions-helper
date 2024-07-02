@@ -59,7 +59,7 @@ jobs:
 
       - name: Check macOS version
         if: inputs.macos_version != '' && matrix.macos != inputs.macos_version
-        run: exit 0
+        run: exit 1
 
       - name: Log job state QUEUED
         if: inputs.status_url
