@@ -32,6 +32,14 @@ on:
           with status updates.
         required: false
         type: string
+      macos_version:
+        description: "macOS version to run the test on"
+        required: false
+        type: choice
+        options:
+          - "13"
+          - "14"
+        default: "14"
 
 env:
   ARIA_AT_WORK_DIR: ${{ inputs.work_dir || 'tests/alert' }}
@@ -41,11 +49,17 @@ env:
 
 jobs:
   voiceover-test:
-    runs-on: macos-14
+    strategy:
+      matrix:
+        macos: ["13", "14"]
+    runs-on: macos-${{ matrix.macos }}
     steps:
-
       # Checkout all repos first (helps cache purposes)
       - uses: actions/checkout@v4
+
+      - name: Check macOS version
+        if: inputs.macos_version != '' && matrix.macos != inputs.macos_version
+        run: exit 0
 
       - name: Log job state QUEUED
         if: inputs.status_url
@@ -53,8 +67,8 @@ jobs:
 
       - uses: robinraju/release-downloader@v1.10
         with:
-          repository: 'w3c/aria-at-automation-driver'
-          tag: 'v0.0.1-beta'
+          repository: "w3c/aria-at-automation-driver"
+          tag: "v0.0.1-beta"
           extract: true
           out-file-path: aria-at-automation-driver
 
@@ -74,7 +88,7 @@ jobs:
 
       - name: "automation-driver: install"
         env:
-          DEBUG: '*'
+          DEBUG: "*"
         working-directory: aria-at-automation-driver/package
         run: ./bin/at-driver install --unattended
 
