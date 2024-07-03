@@ -87,6 +87,7 @@ jobs:
         with:
           repository: "w3c/aria-at"
           path: "aria-at"
+          ref: ${{ inputs.aria_at_ref || 'master' }}
 
       - name: Checkout aria-at-automation-harness
         uses: actions/checkout@v4
