@@ -102,16 +102,25 @@ jobs:
           ref: "main"
           path: "aria-at-automation-harness"
 
-      - name: Download nvda-portable zip
+      - name: Download nvda-portable zip (specific version)
+        if: inputs.nvda_version != null
         uses: robinraju/release-downloader@v1.9
-        id: nvda-portable-download
+        id: nvda-portable-download-specific
         with:
           repository: "bocoup/aria-at-automation-nvda-builds"
-          tarBall: false
-          zipBall: false
-          tag: ${{ inputs.nvda_version || 'latest' }}
+          tag: ${{ inputs.nvda_version }}
+          fileName: "*"
           out-file-path: "nvda-portable"
-          extract: false
+
+      - name: Download nvda-portable zip (latest)
+        if: inputs.nvda_version == null
+        uses: robinraju/release-downloader@v1.9
+        id: nvda-portable-download-latest
+        with:
+          repository: "bocoup/aria-at-automation-nvda-builds"
+          latest: true
+          fileName: "*"
+          out-file-path: "nvda-portable"
 
       - name: Use Node.js 18.x
         uses: actions/setup-node@v4
