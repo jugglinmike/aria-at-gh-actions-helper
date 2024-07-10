@@ -193,7 +193,7 @@ jobs:
         shell: powershell
         timeout-minutes: 30
         env:
-          NVDA_PORTABLE_ZIP: ${{ fromJson(steps.nvda-portable-download.outputs.downloaded_files)[0] }}
+          NVDA_PORTABLE_ZIP: ${{ inputs.nvda_version != '' && steps.nvda-portable-download-specific.outputs.downloaded_files[0] || steps.nvda-portable-download-latest.outputs.downloaded_files[0] }}
         run: |
           & .\run-tester.ps1
 
