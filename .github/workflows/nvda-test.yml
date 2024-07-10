@@ -102,25 +102,17 @@ jobs:
           ref: "main"
           path: "aria-at-automation-harness"
 
-      - name: Download nvda-portable zip (specific version)
-        if: inputs.nvda_version != null
+      - name: Download nvda-portable zip
         uses: robinraju/release-downloader@v1.9
-        id: nvda-portable-download-specific
+        id: nvda-portable-download
         with:
           repository: "bocoup/aria-at-automation-nvda-builds"
+          tarBall: false
+          zipBall: false
           tag: ${{ inputs.nvda_version }}
-          fileName: "*"
+          latest: ${{ inputs.nvda_version == '' }}
           out-file-path: "nvda-portable"
-
-      - name: Download nvda-portable zip (latest)
-        if: inputs.nvda_version == null
-        uses: robinraju/release-downloader@v1.9
-        id: nvda-portable-download-latest
-        with:
-          repository: "bocoup/aria-at-automation-nvda-builds"
-          latest: true
-          fileName: "*"
-          out-file-path: "nvda-portable"
+          extract: false
 
       - name: Use Node.js 18.x
         uses: actions/setup-node@v4
@@ -193,11 +185,8 @@ jobs:
         shell: powershell
         timeout-minutes: 30
         env:
-          NVDA_PORTABLE_ZIP: ${{ inputs.nvda_version != '' && steps.nvda-portable-download-specific.outputs.downloaded_files || steps.nvda-portable-download-latest.outputs.downloaded_files }}
+          NVDA_PORTABLE_ZIP: ${{ fromJson(steps.nvda-portable-download.outputs.downloaded_files)[0] }}
         run: |
-          $nvdaZip = $env:NVDA_PORTABLE_ZIP -replace '[\[\]\"]', '' -split ',' | Select-Object -First 1
-          Write-Host "Using NVDA zip: $nvdaZip"
-          $env:NVDA_PORTABLE_ZIP = $nvdaZip
           & .\run-tester.ps1
 
       - name: Log job state ERROR
