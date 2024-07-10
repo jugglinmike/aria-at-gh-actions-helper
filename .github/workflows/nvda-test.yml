@@ -193,8 +193,11 @@ jobs:
         shell: powershell
         timeout-minutes: 30
         env:
-          NVDA_PORTABLE_ZIP: ${{ inputs.nvda_version == '' && steps.nvda-portable-download-latest.outputs.downloaded_files[0] || steps.nvda-portable-download-specific.outputs.downloaded_files[0] }}
+          NVDA_PORTABLE_ZIP: ${{ inputs.nvda_version != '' && steps.nvda-portable-download-specific.outputs.downloaded_files || steps.nvda-portable-download-latest.outputs.downloaded_files }}
         run: |
+          $nvdaZip = $env:NVDA_PORTABLE_ZIP -replace '[\[\]\"]', '' -split ',' | Select-Object -First 1
+          Write-Host "Using NVDA zip: $nvdaZip"
+          $env:NVDA_PORTABLE_ZIP = $nvdaZip
           & .\run-tester.ps1
 
       - name: Log job state ERROR
