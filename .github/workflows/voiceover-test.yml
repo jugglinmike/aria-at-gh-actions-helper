@@ -43,7 +43,6 @@ jobs:
   voiceover-test:
     runs-on: macos-14
     steps:
-
       # Checkout all repos first (helps cache purposes)
       - uses: actions/checkout@v4
 
@@ -53,8 +52,8 @@ jobs:
 
       - uses: robinraju/release-downloader@v1.10
         with:
-          repository: 'w3c/aria-at-automation-driver'
-          tag: 'v0.0.1-beta'
+          repository: "w3c/aria-at-automation-driver"
+          tag: "v0.0.1-beta"
           extract: true
           out-file-path: aria-at-automation-driver
 
@@ -74,7 +73,7 @@ jobs:
 
       - name: "automation-driver: install"
         env:
-          DEBUG: '*'
+          DEBUG: "*"
         working-directory: aria-at-automation-driver/package
         run: ./bin/at-driver install --unattended
 
@@ -118,6 +117,13 @@ jobs:
         # https://stackoverflow.com/questions/37802673/allow-javascript-from-apple-events-in-safari-through-terminal-mac
       - name: Configure Safari to Allow JavaScript from Apple Events
         run: defaults write -app Safari AllowJavaScriptFromAppleEvents 1
+
+        # Ensure that VoiceOver doesn't automatically read through the entirety of
+        # a webpage when its loaded and there isn't immediate keyboard interaction.
+        # This is turned on by default for some versions of MacOS
+        # https://support.apple.com/guide/voiceover/general-cpvouwebpageloading/mac
+      - name: Configure VoiceOver not to "Automatically Speak Web Page"
+        run: defaults write com.apple.VoiceOver4/default SCRCUserDefaultsAutomaticallySpeakWebPage -bool "false"
 
       - name: Log job state RUNNING
         if: inputs.status_url
