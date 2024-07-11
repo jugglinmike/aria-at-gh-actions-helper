@@ -123,7 +123,7 @@ jobs:
         # This is turned on by default for some versions of MacOS
         # https://support.apple.com/guide/voiceover/general-cpvouwebpageloading/mac
       - name: Configure VoiceOver not to "Automatically Speak Web Page"
-        run: defaults write com.apple.VoiceOver4/default SCRCUserDefaultsAutomaticallySpeakWebPage -bool "false"
+        run: defaults write com.apple.VoiceOver4/default SCRCUserDefaultsAutomaticallySpeakWebPage 0
 
       - name: Log job state RUNNING
         if: inputs.status_url
