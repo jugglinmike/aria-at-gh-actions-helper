@@ -49,29 +49,16 @@ env:
 
 jobs:
   voiceover-test:
-    strategy:
-      matrix:
-        macos: ["13", "14"]
-    runs-on: macos-${{ matrix.macos }}
+    runs-on: macos-${{ inputs.macos_version }}
     steps:
       # Checkout all repos first (helps cache purposes)
       - uses: actions/checkout@v4
 
-      - name: Check macOS version
-        id: check_macos
-        run: |
-          if [[ "${{ inputs.macos_version }}" == "" || "${{ matrix.macos }}" == "${{ inputs.macos_version }}" ]]; then
-            echo "should_run=true" >> $GITHUB_OUTPUT
-          else
-            echo "should_run=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Log job state QUEUED
-        if: inputs.status_url && steps.check_macos.outputs.should_run == 'true'
+        if: inputs.status_url
         run: ./report-status.sh QUEUED ''
 
       - uses: robinraju/release-downloader@v1.10
-        if: steps.check_macos.outputs.should_run == 'true'
         with:
           repository: "w3c/aria-at-automation-driver"
           tag: "v0.0.1-beta"
@@ -80,35 +67,29 @@ jobs:
 
       - name: Use Node.js 18.x
         uses: actions/setup-node@v4
-        if: steps.check_macos.outputs.should_run == 'true'
         with:
           node-version: 18.x
           cache: "npm"
           cache-dependency-path: "**/package-lock.json"
 
       - name: Setup Environment
-        if: steps.check_macos.outputs.should_run == 'true'
         uses: guidepup/setup-action@0.15.3
 
       - name: "automation-driver: npm install"
-        if: steps.check_macos.outputs.should_run == 'true'
         working-directory: aria-at-automation-driver/package
         run: npm install
 
       - name: "automation-driver: install"
-        if: steps.check_macos.outputs.should_run == 'true'
         env:
           DEBUG: "*"
         working-directory: aria-at-automation-driver/package
         run: ./bin/at-driver install --unattended
 
       - name: Wait for server to be ready
-        if: steps.check_macos.outputs.should_run == 'true'
         working-directory: aria-at-automation-driver/package
         run: ../../wait-for-server.sh
 
       - name: Checkout aria-at ref ${{ inputs.aria_at_ref || 'master' }}
-        if: steps.check_macos.outputs.should_run == 'true'
         uses: actions/checkout@v4
         with:
           repository: "w3c/aria-at"
@@ -116,29 +97,24 @@ jobs:
           ref: ${{ inputs.aria_at_ref || 'master' }}
 
       - name: Checkout aria-at-automation-harness
-        if: steps.check_macos.outputs.should_run == 'true'
         uses: actions/checkout@v4
         with:
           repository: "w3c/aria-at-automation-harness"
           path: "aria-at-automation-harness"
 
       - name: "aria-at: npm install"
-        if: steps.check_macos.outputs.should_run == 'true'
         working-directory: aria-at
         run: npm install
 
       - name: "aria-at: npm run build"
-        if: steps.check_macos.outputs.should_run == 'true'
         working-directory: aria-at
         run: npm run build
 
       - name: "automation-harness: npm install"
-        if: steps.check_macos.outputs.should_run == 'true'
         working-directory: aria-at-automation-harness
         run: npm install
 
       - name: Start VoiceOver
-        if: steps.check_macos.outputs.should_run == 'true'
         run: "/System/Library/CoreServices/VoiceOver.app/Contents/MacOS/VoiceOverStarter"
 
         # This feature must be enabled in order for the harness to inspect the
@@ -148,7 +124,6 @@ jobs:
         # tests must simulate).
         # https://stackoverflow.com/questions/37802673/allow-javascript-from-apple-events-in-safari-through-terminal-mac
       - name: Configure Safari to Allow JavaScript from Apple Events
-        if: steps.check_macos.outputs.should_run == 'true'
         run: defaults write -app Safari AllowJavaScriptFromAppleEvents 1
 
         # Ensure that VoiceOver doesn't automatically read through the entirety of
@@ -159,24 +134,23 @@ jobs:
         run: defaults write com.apple.VoiceOver4/default SCRCUserDefaultsAutomaticallySpeakWebPage 0
 
       - name: Log job state RUNNING
-        if: inputs.status_url && steps.check_macos.outputs.should_run == 'true'
+        if: inputs.status_url
         run: './report-status.sh RUNNING "\"work_dir\": \"${ARIA_AT_WORK_DIR}\","'
 
       - name: Run harness
-        if: steps.check_macos.outputs.should_run == 'true'
         run: ./run-tester.sh
 
       - name: Log job state ERROR
-        if: failure() && inputs.status_url && steps.check_macos.outputs.should_run == 'true'
+        if: failure() && inputs.status_url
         run: ./report-status.sh ERROR ''
 
       - name: Log job state COMPLETED
-        if: success() && inputs.status_url && steps.check_macos.outputs.should_run == 'true'
+        if: success() && inputs.status_url
         run: ./report-status.sh COMPLETED ''
 
       - name: upload *.{log,png}
         uses: actions/upload-artifact@v4
-        if: always() && steps.check_macos.outputs.should_run == 'true'
+        if: always()
         with:
           name: logs
           path: |
