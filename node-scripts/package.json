@@ -1,0 +1,26 @@
+{
+  "name": "idk",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.ts",
+  "scripts": {
+    "run": "node --loader ts-node/esm index.mts"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@octokit/rest": "^21.0.1",
+    "ngrok": "^5.0.0-beta.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
+  },
+  "devDependencies": {
+    "@tsconfig/node20": "^20.1.4",
+    "@types/node": "^20.14.12",
+    "@octokit/types": "^13.5.0",
+    "tslib": "^2.6.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
