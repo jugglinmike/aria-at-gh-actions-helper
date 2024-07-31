@@ -10,18 +10,20 @@ const port = 8888;
 const workflowIdHeaderKey = "x-workflow-id";
 const numRuns = 3;
 
-interface WorkflowCallBackRequestBody {
+const expectedWorkflowCallbacksNum: { [key: string]: number } =
+  Object.fromEntries(workflowIds.map((id) => [id, 0]));
+
+interface WorkflowCallbackPayload {
   status: string;
   responses: Array<string>;
 }
 
 function checkRunSetResults(results: Array<Array<string>>) {
-  console.log("all the bodies: ", results);
   const isAllEqual = results.every((arr, i) => {
     if (arr.every((a, j) => a == results[0][j])) {
       return true;
     } else {
-      console.error(`${i}th array is different\n${arr}`);
+      console.error(`${i}th array of screenreader responses is different`);
       return false;
     }
   });
@@ -30,9 +32,7 @@ function checkRunSetResults(results: Array<Array<string>>) {
     if (arr.every((s) => s.trim().length !== 0)) {
       return true;
     } else {
-      console.error(
-        `${i}th array has a blank response from screenreader\n${arr}`
-      );
+      console.error(`${i}th array has a blank response from screenreader`);
       return false;
     }
   });
@@ -72,13 +72,19 @@ const proms = workflowIds.map(async (workflowId) => {
         });
 
         req.on("end", () => {
-          const parsedBody: WorkflowCallBackRequestBody = JSON.parse(body);
+          const parsedBody: WorkflowCallbackPayload = JSON.parse(body);
 
           if (parsedBody.status === "COMPLETED") {
             screenReaderResponses.push(parsedBody.responses);
           }
 
-          if (screenReaderResponses.length === numRuns) {
+          if (
+            screenReaderResponses.length ===
+            expectedWorkflowCallbacksNum[workflowId]
+          ) {
+            console.log(
+              `Received results for ${screenReaderResponses.length} runs of ${workflowId}. Checking results.`
+            );
             resolvePromise(checkRunSetResults(screenReaderResponses));
           }
           res.end();
@@ -100,13 +106,15 @@ const proms = workflowIds.map(async (workflowId) => {
           callback_header: `${workflowIdHeaderKey}:${workflowId}`,
         },
       });
-
-      console.log(`A run of workflow ${workflowId} has been dispatched.`);
+      expectedWorkflowCallbacksNum[workflowId] += 1;
     } catch (e) {
       console.log(`A run of workflow ${workflowId} failed to dispatch.`);
       console.error(e);
     }
   }
+  console.log(
+    `Dispatched ${expectedWorkflowCallbacksNum[workflowId]} runs of ${workflowId}.`
+  );
   return completedPromise;
 });
 
