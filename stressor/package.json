@@ -1,10 +1,10 @@
 {
-  "name": "idk",
+  "name": "stressor",
   "version": "0.0.0",
-  "description": "",
-  "main": "index.ts",
+  "description": "Stress test Test Plans via CI workflows",
+  "main": "stress-test.mts",
   "scripts": {
-    "run": "node --loader ts-node/esm index.mts"
+    "run": "node --loader ts-node/esm stress-test.mts"
   },
   "author": "",
   "license": "ISC",
