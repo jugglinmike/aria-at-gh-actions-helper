@@ -1,0 +1,9 @@
+# ignore everything
+**/*
+# whitelist files we want
+!at-driver.log
+!harness-run.log
+!http-testing.log
+!nvda.log
+!webdriver.log
+!tes*.png
