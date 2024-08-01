@@ -225,19 +225,3 @@ for (const testPlan of testPlans) {
 }
 
 process.exit(0);
-
-// const testCombinationRun = testCombinations.map(
-//   async (testCombo: TestCombination) => {
-//     const completedPromise = setUpTestComboCallbackListener(testCombo);
-//     // kick off runs for test combo
-//     const successfulDispatches = await dispatchWorkflowsForTestCombo(testCombo);
-//     expectedWorkflowCallbacksStore[getWorkflowKey(testCombo)] =
-//       successfulDispatches;
-//     return completedPromise;
-//   }
-// );
-
-// const results = await Promise.all(testCombinationRun);
-// const isgoodResults = results.every((r) => r);
-// console.log(`Results passing: ${isgoodResults}. Exiting.`);
-// process.exit(isgoodResults ? 0 : 1);
