@@ -1,6 +1,7 @@
 import * as http from "node:http";
 import ngrok from "ngrok";
 import { Octokit } from "@octokit/rest";
+import { diff } from "jest-diff";
 
 const testPlans = [
   "tests/menu-button-actions-active-descendant",
@@ -83,7 +84,7 @@ function checkRunSetResults(results: Array<Array<string>>) {
       return true;
     } else {
       console.error(`${i}th array of screenreader responses is different`);
-      // TODO: use diff lib to print the diff
+      console.debug(diff(arr, results[0]));
       return false;
     }
   });
