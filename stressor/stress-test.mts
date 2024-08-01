@@ -43,11 +43,14 @@ interface TestCombination {
   workflowTestPlan: string;
 }
 
-const expectedWorkflowCallbacksStore: { [key: string]: number } = {};
-
-function getWorkflowKey(combination: TestCombination) {
+function getWorkflowRunKey(combination: TestCombination, runIndex: number) {
   const { workflowId, workflowBrowser, workflowTestPlan } = combination;
-  return `${workflowId}-${workflowBrowser}-${workflowTestPlan}`;
+  return `${runIndex}-${workflowId}-${workflowBrowser}-${workflowTestPlan}`;
+}
+
+function testComboToString(combination: TestCombination) {
+  const { workflowId, workflowBrowser, workflowTestPlan } = combination;
+  return `Test plan: ${workflowTestPlan}, workflow: ${workflowId}, browser: ${workflowBrowser}`;
 }
 
 function generateTestCombinations(
@@ -128,41 +131,35 @@ const octokitClient = new Octokit({
 });
 
 async function setUpTestComboCallbackListener(
-  testCombination: TestCombination
+  testCombination: TestCombination,
+  runIndex: number
 ) {
   const { workflowId, workflowBrowser, workflowTestPlan } = testCombination;
-
-  const promise = new Promise<boolean>((resolvePromise) => {
+  const promise = new Promise<Array<string>>((resolvePromise) => {
+    const uniqueWorkflowHeaderValue = `${getWorkflowRunKey(
+      testCombination,
+      runIndex
+    )}`;
     let requestListener = (
       req: http.IncomingMessage,
       res: http.ServerResponse
     ) => {
       let body = "";
-      let screenReaderResponses: Array<Array<string>> = [];
-      if (
-        req.headers?.[workflowHeaderKey] === getWorkflowKey(testCombination)
-      ) {
+      if (req.headers?.[workflowHeaderKey] === uniqueWorkflowHeaderValue) {
         req.on("data", (chunk) => {
           body += chunk.toString();
         });
 
         req.on("end", () => {
           const parsedBody: WorkflowCallbackPayload = JSON.parse(body);
+          console.debug(uniqueWorkflowHeaderValue);
+          console.debug("Parsed body: ", parsedBody);
 
           if (parsedBody.status === "COMPLETED") {
-            screenReaderResponses.push(parsedBody.responses);
-          }
-
-          if (
-            screenReaderResponses.length ===
-            expectedWorkflowCallbacksStore[getWorkflowKey(testCombination)]
-          ) {
             console.log(
-              `Received ${screenReaderResponses.length} results for test plan
-              ${workflowTestPlan} on workflow ${workflowId} and
-              browser ${workflowBrowser}. Checking results.`
+              `Received result for test plan ${workflowTestPlan} on workflow ${workflowId} and browser ${workflowBrowser}, run ${runIndex}.`
             );
-            resolvePromise(checkRunSetResults(screenReaderResponses));
+            resolvePromise(parsedBody.responses);
           }
           res.end();
           server.removeListener("request", requestListener);
@@ -174,34 +171,37 @@ async function setUpTestComboCallbackListener(
   return promise;
 }
 
-async function dispatchWorkflowsForTestCombo(testCombo: TestCombination) {
-  const { workflowId, workflowBrowser, workflowTestPlan } = testCombo;
-  let successfulDispatches = 0;
-  for (let run = 0; run < numRuns; run++) {
-    try {
-      await octokitClient.actions.createWorkflowDispatch({
-        owner,
-        repo,
-        workflow_id: workflowId,
-        ref: defaultBranch,
-        inputs: {
-          callback_url: ngrokUrl,
-          callback_header: `${workflowHeaderKey}:${getWorkflowKey(testCombo)}`,
-          work_dir: workflowTestPlan,
-        },
-      });
-      successfulDispatches += 1;
-    } catch (e) {
-      console.log(
-        `A run of workflow ${workflowId} on ${workflowBrowser} for test plan ${workflowTestPlan} failed to dispatch.`
-      );
-      console.error(e);
-    }
+async function dispatchWorkflowForTestCombo(
+  testCombo: TestCombination,
+  runIndex: number
+): Promise<boolean> {
+  const { workflowId, workflowTestPlan } = testCombo;
+  try {
+    await octokitClient.actions.createWorkflowDispatch({
+      owner,
+      repo,
+      workflow_id: workflowId,
+      ref: defaultBranch,
+      inputs: {
+        work_dir: workflowTestPlan,
+        callback_url: ngrokUrl,
+        callback_header: `${workflowHeaderKey}:${getWorkflowRunKey(
+          testCombo,
+          runIndex
+        )}`,
+      },
+    });
+    console.debug(
+      `Dispatched run ${runIndex} of ${testComboToString(testCombo)}.`
+    );
+    return true;
+  } catch (e) {
+    console.log(
+      `Run ${runIndex} of ${testComboToString(testCombo)} failed to dispatch.`
+    );
+    console.error(e);
+    return false;
   }
-  console.log(
-    `Dispatched ${successfulDispatches} runs of ${workflowId} on ${workflowBrowser} for test plan ${workflowTestPlan}.`
-  );
-  return successfulDispatches;
 }
 
 // Step through testPlans, waiting for those CI runs to finish before the next begin
@@ -209,20 +209,45 @@ for (const testPlan of testPlans) {
   const testCombosForTestPlan = testCombinations.filter(
     (testCombo) => testCombo.workflowTestPlan === testPlan
   );
-  const testCombinationRun = testCombosForTestPlan.map(
-    async (testCombo: TestCombination) => {
-      const completedPromise = setUpTestComboCallbackListener(testCombo);
-      const successfulDispatches = await dispatchWorkflowsForTestCombo(
-        testCombo
+  const testCombinationResults = await Promise.all(
+    testCombosForTestPlan.map(async (testCombo: TestCombination) => {
+      const runPromises = [];
+      for (let runIndex = 0; runIndex < numRuns; runIndex++) {
+        const dispatched = await dispatchWorkflowForTestCombo(
+          testCombo,
+          runIndex
+        );
+        if (dispatched) {
+          const listenerPromise = setUpTestComboCallbackListener(
+            testCombo,
+            runIndex
+          );
+          runPromises.push(listenerPromise);
+        }
+      }
+
+      console.log(
+        `Dispatched ${
+          runPromises.length
+        } workflow runs for combination ${testComboToString(testCombo)}:.`
       );
-      expectedWorkflowCallbacksStore[getWorkflowKey(testCombo)] =
-        successfulDispatches;
-      return completedPromise;
-    }
+
+      const runResults = await Promise.all(runPromises);
+
+      const isGoodResults = checkRunSetResults(runResults);
+      console.log(
+        `Results for test combination ${testComboToString(testCombo)}: ${
+          isGoodResults ? "PASS" : "FAIL"
+        }`
+      );
+      return isGoodResults;
+    })
   );
-  const results = await Promise.all(testCombinationRun);
-  const isgoodResults = results.every((r) => r);
-  console.log(`Results passing: ${isgoodResults}.`);
+
+  const isAllGoodResults = testCombinationResults.every((result) => result);
+  console.log(
+    `All results passing for test plan ${testPlan}: ${isAllGoodResults}.`
+  );
 }
 
 process.exit(0);
