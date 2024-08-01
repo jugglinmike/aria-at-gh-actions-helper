@@ -4,7 +4,7 @@
   "description": "Stress test Test Plans via CI workflows",
   "main": "stress-test.mts",
   "scripts": {
-    "run": "node --loader ts-node/esm stress-test.mts"
+    "stress-test": "node --loader ts-node/esm stress-test.mts"
   },
   "author": "",
   "license": "ISC",
