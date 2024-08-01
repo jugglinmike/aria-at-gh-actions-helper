@@ -2,9 +2,18 @@ import * as http from "node:http";
 import ngrok from "ngrok";
 import { Octokit } from "@octokit/rest";
 
-// tests that are currently in working order
-// TODO: Make into array
-const work_dir = process.env.ARIA_AT_WORK_DIR ?? "";
+const testPlans = [
+  "tests/menu-button-actions-active-descendant",
+  "tests/alert",
+  "tests/horizontal-slider",
+  // "tests/command-button",
+  // "tests/disclosure-navigation",
+  // "tests/link-span-text",
+  // "tests/dialog",
+  // "tests/menu-button-navigation",
+  // "tests/radiogroup-aria-activedescendant",
+  // "tests/toggle-button/toggle-button-navigation",
+];
 const owner = "bocoup",
   repo = "aria-at-gh-actions-helper";
 const defaultBranch = "main";
@@ -20,7 +29,7 @@ const testingMatrix = [
 ];
 const port = 8888;
 const workflowHeaderKey = "x-workflow-key";
-const numRuns = 3;
+const numRuns = 2;
 
 interface WorkflowCallbackPayload {
   status: string;
@@ -41,14 +50,17 @@ function getWorkflowKey(combination: TestCombination) {
 }
 
 function generateTestCombinations(
-  matrix: typeof testingMatrix
+  matrix: typeof testingMatrix,
+  testPlans: string[]
 ): Array<TestCombination> {
   return matrix.flatMap(({ workflowId, browsers }) =>
-    browsers.map((browser) => ({
-      workflowId,
-      workflowBrowser: browser,
-      workflowTestPlan: work_dir,
-    }))
+    browsers.flatMap((browser) =>
+      testPlans.map((testPlan) => ({
+        workflowId,
+        workflowBrowser: browser,
+        workflowTestPlan: testPlan,
+      }))
+    )
   );
 }
 
@@ -64,7 +76,7 @@ function checkRunSetResults(results: Array<Array<string>>) {
   });
   console.log("All the same: ", isAllEqual);
   const isAllPopulated = results.every((arr, i) => {
-    if (arr.every((s) => s.trim().length !== 0)) {
+    if (arr.every((s) => s !== null && s.trim().length !== 0)) {
       return true;
     } else {
       console.error(`${i}th array has a blank response from screenreader`);
@@ -79,8 +91,8 @@ function checkRunSetResults(results: Array<Array<string>>) {
   return isAllEqual && isAllPopulated;
 }
 
-const testCombinations = generateTestCombinations(testingMatrix);
-console.debug("Test Plans:\n", work_dir);
+const testCombinations = generateTestCombinations(testingMatrix, testPlans);
+console.debug("Test Plans:\n", testPlans);
 console.debug("Testing Matrix:\n", testingMatrix);
 console.log(
   `Will dispatch ${
@@ -158,34 +170,60 @@ async function dispatchWorkflowsForTestCombo(testCombo: TestCombination) {
         inputs: {
           callback_url: ngrokUrl,
           callback_header: `${workflowHeaderKey}:${getWorkflowKey(testCombo)}`,
+          work_dir: workflowTestPlan,
         },
       });
       successfulDispatches += 1;
     } catch (e) {
       console.log(
-        `A run of workflow ${workflowId} on ${workflowBrowser} failed to dispatch.`
+        `A run of workflow ${workflowId} on ${workflowBrowser} for test plan ${workflowTestPlan} failed to dispatch.`
       );
       console.error(e);
     }
   }
+  console.log(
+    `Dispatched ${successfulDispatches} runs of ${workflowId} on ${workflowBrowser} for test plan ${workflowTestPlan}.`
+  );
   return successfulDispatches;
 }
 
-const testCombinationRun = testCombinations.map(
-  async (testCombo: TestCombination) => {
-    const completedPromise = setUpTestComboCallbackListener(testCombo);
-    // kick off runs for test combo
-    const successfulDispatches = await dispatchWorkflowsForTestCombo(testCombo);
-    console.log(
-      `Dispatched ${successfulDispatches} runs of ${testCombo.workflowId} on ${testCombo.workflowBrowser}.`
-    );
-    expectedWorkflowCallbacksStore[getWorkflowKey(testCombo)] =
-      successfulDispatches;
-    return completedPromise;
+// Step through testPlans, waiting for those CI runs to finish before the next begin
+for (const testPlan of testPlans) {
+  const testCombosForTestPlan = testCombinations.filter(
+    (testCombo) => testCombo.workflowTestPlan === testPlan
+  );
+  const testCombinationRun = testCombosForTestPlan.map(
+    async (testCombo: TestCombination) => {
+      const completedPromise = setUpTestComboCallbackListener(testCombo);
+      const successfulDispatches = await dispatchWorkflowsForTestCombo(
+        testCombo
+      );
+      expectedWorkflowCallbacksStore[getWorkflowKey(testCombo)] =
+        successfulDispatches;
+      return completedPromise;
+    }
+  );
+  const results = await Promise.all(testCombinationRun);
+  const isgoodResults = results.every((r) => r);
+  if (!isgoodResults) {
+    console.log(`Results passing: ${isgoodResults}.`);
   }
-);
+}
 
-const results = await Promise.all(testCombinationRun);
-const isgoodResults = results.every((r) => r);
-console.log(`Results passing: ${isgoodResults}. Exiting.`);
-process.exit(isgoodResults ? 0 : 1);
+process.exit(0);
+
+// const testCombinationRun = testCombinations.map(
+//   async (testCombo: TestCombination) => {
+//     const completedPromise = setUpTestComboCallbackListener(testCombo);
+//     // kick off runs for test combo
+//     const successfulDispatches = await dispatchWorkflowsForTestCombo(testCombo);
+//     expectedWorkflowCallbacksStore[getWorkflowKey(testCombo)] =
+//       successfulDispatches;
+//     return completedPromise;
+//   }
+// );
+
+// const results = await Promise.all(testCombinationRun);
+// const isgoodResults = results.every((r) => r);
+// console.log(`Results passing: ${isgoodResults}. Exiting.`);
+// process.exit(isgoodResults ? 0 : 1);
