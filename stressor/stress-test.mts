@@ -205,9 +205,7 @@ for (const testPlan of testPlans) {
   );
   const results = await Promise.all(testCombinationRun);
   const isgoodResults = results.every((r) => r);
-  if (!isgoodResults) {
-    console.log(`Results passing: ${isgoodResults}.`);
-  }
+  console.log(`Results passing: ${isgoodResults}.`);
 }
 
 process.exit(0);
