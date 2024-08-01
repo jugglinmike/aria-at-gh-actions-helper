@@ -43,17 +43,21 @@ interface TestCombination {
   workflowTestPlan: string;
 }
 
+/* Creates a unique key for a workflow run, given the test combo and run index
+ * The key is used to identify the callbacks for a given test combo run */
 function getWorkflowRunKey(combination: TestCombination, runIndex: number) {
   const { workflowId, workflowBrowser, workflowTestPlan } = combination;
   return `${runIndex}-${workflowId}-${workflowBrowser}-${workflowTestPlan}`;
 }
 
+/* Creates a string representation of a test combo, for logging and debugging */
 function testComboToString(combination: TestCombination) {
   const { workflowId, workflowBrowser, workflowTestPlan } = combination;
   return `Test plan: ${workflowTestPlan}, workflow: ${workflowId}, browser: ${workflowBrowser}`;
 }
 
-function generateTestCombinations(
+/* Creates a list of test combinations, given the testing matrix and test plans */
+function enumerateTestCombinations(
   matrix: typeof testingMatrix,
   testPlans: string[]
 ): Array<TestCombination> {
@@ -68,68 +72,7 @@ function generateTestCombinations(
   );
 }
 
-function checkRunSetResults(results: Array<Array<string>>) {
-  const isAllPopulated = results.every((arr, i) => {
-    if (
-      arr.length > 0 &&
-      arr.every((s) => s !== null && s.trim().length !== 0)
-    ) {
-      return true;
-    } else {
-      console.error(`${i}th array has a blank response from screenreader`);
-      return false;
-    }
-  });
-  console.log("All populated: ", isAllPopulated);
-
-  const isAllEqual = results.every((arr, i) => {
-    if (arr.every((a, j) => a == results[0][j])) {
-      return true;
-    } else {
-      console.error(`${i}th array of screenreader responses is different`);
-      console.debug(diff(arr, results[0]));
-      return false;
-    }
-  });
-  console.log("All the same: ", isAllEqual);
-
-  if (!isAllEqual || !isAllPopulated) {
-    console.debug("All results:");
-    console.debug(results);
-  }
-  return isAllEqual && isAllPopulated;
-}
-
-const testCombinations = generateTestCombinations(testingMatrix, testPlans);
-console.debug("Test Plans:\n", testPlans);
-console.debug("Testing Matrix:\n", testingMatrix);
-console.log(
-  `Will dispatch ${
-    testCombinations.length
-  } test combinations ${numRuns} times, for a total of ${
-    testCombinations.length * numRuns
-  } workflow runs.`
-);
-
-const server = http.createServer();
-server.listen(port);
-console.log(`Local server started at port ${port}`);
-
-const ngrokUrl = await ngrok.connect({
-  port,
-});
-console.log(`Ngrok tunnel started at ${ngrokUrl}`);
-
-process.on("beforeExit", (code) => {
-  server.close();
-  ngrok.kill();
-  console.log("Exiting with code: ", code);
-});
-
-const octokitClient = new Octokit({
-  auth: process.env.GITHUB_TOKEN,
-});
-
+/* Sets up a listener on the node server for a single run of a test combo */
 async function setUpTestComboCallbackListener(
   testCombination: TestCombination,
   runIndex: number
@@ -171,6 +114,7 @@ async function setUpTestComboCallbackListener(
   return promise;
 }
 
+/* Dispatches a workflow run on GitHub Actions for a single test combo */
 async function dispatchWorkflowForTestCombo(
   testCombo: TestCombination,
   runIndex: number
@@ -204,11 +148,77 @@ async function dispatchWorkflowForTestCombo(
   }
 }
 
+/* Checks if all the results in a set of workflow runs are the same and non-empty */
+function checkRunSetResults(results: Array<Array<string>>) {
+  const isAllPopulated = results.every((arr, i) => {
+    if (
+      arr.length > 0 &&
+      arr.every((s) => s !== null && s.trim().length !== 0)
+    ) {
+      return true;
+    } else {
+      console.error(`${i}th array has a blank response from screenreader`);
+      return false;
+    }
+  });
+  console.log("All populated: ", isAllPopulated);
+
+  const isAllEqual = results.every((arr, i) => {
+    if (arr.every((a, j) => a == results[0][j])) {
+      return true;
+    } else {
+      console.error(`${i}th array of screenreader responses is different`);
+      console.debug(diff(arr, results[0]));
+      return false;
+    }
+  });
+  console.log("All the same: ", isAllEqual);
+
+  if (!isAllEqual || !isAllPopulated) {
+    console.debug("All results:");
+    console.debug(results);
+  }
+  return isAllEqual && isAllPopulated;
+}
+
+// Get all the test combos
+const testCombinations = enumerateTestCombinations(testingMatrix, testPlans);
+console.debug("Test Plans:\n", testPlans);
+console.debug("Testing Matrix:\n", testingMatrix);
+console.log(
+  `Will dispatch ${
+    testCombinations.length
+  } test combinations ${numRuns} times, for a total of ${
+    testCombinations.length * numRuns
+  } workflow runs.`
+);
+
+const server = http.createServer();
+server.listen(port);
+console.log(`Local server started at port ${port}`);
+
+const ngrokUrl = await ngrok.connect({
+  port,
+});
+console.log(`Ngrok tunnel started at ${ngrokUrl}`);
+
+process.on("beforeExit", (code) => {
+  server.close();
+  ngrok.kill();
+  console.log("Exiting with code: ", code);
+});
+
+const octokitClient = new Octokit({
+  auth: process.env.GITHUB_TOKEN,
+});
+
 // Step through testPlans, waiting for those CI runs to finish before the next begin
 for (const testPlan of testPlans) {
+  // Filter the list of test combos to only those for this test plan
   const testCombosForTestPlan = testCombinations.filter(
     (testCombo) => testCombo.workflowTestPlan === testPlan
   );
+  // For each test plan, run each test combo in parallel
   const testCombinationResults = await Promise.all(
     testCombosForTestPlan.map(async (testCombo: TestCombination) => {
       const runPromises = [];
@@ -232,8 +242,10 @@ for (const testPlan of testPlans) {
         } workflow runs for combination ${testComboToString(testCombo)}:.`
       );
 
+      // Wait to get all results from parallel runs of the same test combo
       const runResults = await Promise.all(runPromises);
 
+      // Check if all the results are good
       const isGoodResults = checkRunSetResults(runResults);
       console.log(
         `Results for test combination ${testComboToString(testCombo)}: ${
@@ -244,6 +256,7 @@ for (const testPlan of testPlans) {
     })
   );
 
+  // Check if all the test combos passed
   const isAllGoodResults = testCombinationResults.every((result) => result);
   console.log(
     `All results passing for test plan ${testPlan}: ${isAllGoodResults}.`
