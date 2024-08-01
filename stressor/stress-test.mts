@@ -126,12 +126,18 @@ const octokitClient = new Octokit({
   auth: process.env.GITHUB_TOKEN,
 });
 
-function setUpTestComboCallbackListener(testCombination: TestCombination) {
+async function setUpTestComboCallbackListener(
+  testCombination: TestCombination
+) {
   const { workflowId, workflowBrowser, workflowTestPlan } = testCombination;
-  return new Promise<boolean>((resolvePromise) => {
-    let screenReaderResponses: Array<Array<string>> = [];
-    server.on("request", (req, res) => {
+
+  const promise = new Promise<boolean>((resolvePromise) => {
+    let requestListener = (
+      req: http.IncomingMessage,
+      res: http.ServerResponse
+    ) => {
       let body = "";
+      let screenReaderResponses: Array<Array<string>> = [];
       if (
         req.headers?.[workflowHeaderKey] === getWorkflowKey(testCombination)
       ) {
@@ -151,15 +157,20 @@ function setUpTestComboCallbackListener(testCombination: TestCombination) {
             expectedWorkflowCallbacksStore[getWorkflowKey(testCombination)]
           ) {
             console.log(
-              `Received ${screenReaderResponses.length} results for test plan ${workflowTestPlan} on workflow ${workflowId} and browser ${workflowBrowser}. Checking results.`
+              `Received ${screenReaderResponses.length} results for test plan
+              ${workflowTestPlan} on workflow ${workflowId} and
+              browser ${workflowBrowser}. Checking results.`
             );
             resolvePromise(checkRunSetResults(screenReaderResponses));
           }
           res.end();
+          server.removeListener("request", requestListener);
         });
       }
-    });
+    };
+    server.on("request", requestListener);
   });
+  return promise;
 }
 
 async function dispatchWorkflowsForTestCombo(testCombo: TestCombination) {
