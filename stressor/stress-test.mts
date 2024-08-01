@@ -65,6 +65,19 @@ function generateTestCombinations(
 }
 
 function checkRunSetResults(results: Array<Array<string>>) {
+  const isAllPopulated = results.every((arr, i) => {
+    if (
+      arr.length > 0 &&
+      arr.every((s) => s !== null && s.trim().length !== 0)
+    ) {
+      return true;
+    } else {
+      console.error(`${i}th array has a blank response from screenreader`);
+      return false;
+    }
+  });
+  console.log("All populated: ", isAllPopulated);
+
   const isAllEqual = results.every((arr, i) => {
     if (arr.every((a, j) => a == results[0][j])) {
       return true;
@@ -75,15 +88,7 @@ function checkRunSetResults(results: Array<Array<string>>) {
     }
   });
   console.log("All the same: ", isAllEqual);
-  const isAllPopulated = results.every((arr, i) => {
-    if (arr.every((s) => s !== null && s.trim().length !== 0)) {
-      return true;
-    } else {
-      console.error(`${i}th array has a blank response from screenreader`);
-      return false;
-    }
-  });
-  console.log("All populated: ", isAllPopulated);
+
   if (!isAllEqual || !isAllPopulated) {
     console.debug("All results:");
     console.debug(results);
