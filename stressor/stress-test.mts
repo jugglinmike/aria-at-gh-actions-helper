@@ -31,9 +31,11 @@ const testingMatrix = [
 const port = 8888;
 const workflowHeaderKey = "x-workflow-key";
 const numRuns = 2;
+const testContinueTimeoutMs = 30_000;
 
 interface WorkflowCallbackPayload {
   status: string;
+  testCsvRow: number;
   responses: Array<string>;
 }
 
@@ -43,20 +45,31 @@ interface TestCombination {
   workflowTestPlan: string;
 }
 
-/* Creates a unique key for a workflow run, given the test combo and run index
- * The key is used to identify the callbacks for a given test combo run */
+type WorkflowRunResults = Array<{
+  screenreaderResponses: Array<string>;
+  testCsvRow: number;
+}>;
+
+/**
+ * Creates a unique key for a workflow run, given the test combo and run index
+ * The key is used to identify the callbacks for a given test combo run
+ */
 function getWorkflowRunKey(combination: TestCombination, runIndex: number) {
   const { workflowId, workflowBrowser, workflowTestPlan } = combination;
   return `${runIndex}-${workflowId}-${workflowBrowser}-${workflowTestPlan}`;
 }
 
-/* Creates a string representation of a test combo, for logging and debugging */
+/**
+ * Creates a string representation of a test combo, for logging and debugging
+ */
 function testComboToString(combination: TestCombination) {
   const { workflowId, workflowBrowser, workflowTestPlan } = combination;
   return `Test plan: ${workflowTestPlan}, workflow: ${workflowId}, browser: ${workflowBrowser}`;
 }
 
-/* Creates a list of test combinations, given the testing matrix and test plans */
+/**
+ * Creates a list of test combinations, given the testing matrix and test plans
+ */
 function enumerateTestCombinations(
   matrix: typeof testingMatrix,
   testPlans: string[]
@@ -72,18 +85,26 @@ function enumerateTestCombinations(
   );
 }
 
-/* Sets up a listener on the node server for a single run of a test combo */
+/**
+ * Sets up a listener on the node server for a single run of a test combo.
+ * @returns a promise that resolves when the workflow run is complete.
+ */
 async function setUpTestComboCallbackListener(
   testCombination: TestCombination,
   runIndex: number
 ) {
-  const { workflowId, workflowBrowser, workflowTestPlan } = testCombination;
-  const promise = new Promise<Array<string>>((resolvePromise) => {
+  console.log(
+    `Setting up listener for ${getWorkflowRunKey(testCombination, runIndex)}.`
+  );
+  const promise = new Promise<WorkflowRunResults>((resolvePromise) => {
     const uniqueWorkflowHeaderValue = `${getWorkflowRunKey(
       testCombination,
       runIndex
     )}`;
-    let requestListener = (
+    const results: WorkflowRunResults = [];
+    let timeoutId: NodeJS.Timeout;
+    let timeoutStartTime: number;
+    const requestListener = (
       req: http.IncomingMessage,
       res: http.ServerResponse
     ) => {
@@ -95,26 +116,45 @@ async function setUpTestComboCallbackListener(
 
         req.on("end", () => {
           const parsedBody: WorkflowCallbackPayload = JSON.parse(body);
-          console.debug(uniqueWorkflowHeaderValue);
-          console.debug("Parsed body: ", parsedBody);
 
+          if (parsedBody.status === "RUNNING") {
+            // Turns out there are more results coming
+            clearTimeout(timeoutId);
+          }
           if (parsedBody.status === "COMPLETED") {
-            console.log(
-              `Received result for test plan ${workflowTestPlan} on workflow ${workflowId} and browser ${workflowBrowser}, run ${runIndex}.`
-            );
-            resolvePromise(parsedBody.responses);
+            results.push({
+              screenreaderResponses: parsedBody.responses,
+              testCsvRow: parsedBody.testCsvRow,
+            });
+            // We don't get an explicit signal when all the tests come in,
+            // so we wait to see if we another "RUNNING" message.
+            clearTimeout(timeoutId);
+            timeoutStartTime = Date.now();
+            timeoutId = setTimeout(() => {
+              console.log(
+                `Workflow run ${getWorkflowRunKey(
+                  testCombination,
+                  runIndex
+                )} seems to be done.`
+              );
+              resolvePromise(results);
+              server.removeListener("request", requestListener);
+            }, testContinueTimeoutMs);
           }
           res.end();
-          server.removeListener("request", requestListener);
         });
       }
     };
     server.on("request", requestListener);
   });
+
   return promise;
 }
 
-/* Dispatches a workflow run on GitHub Actions for a single test combo */
+/**
+ * Dispatches a workflow run on GitHub Actions for a single test combo.
+ * @returns true if successful, false otherwise.
+ */
 async function dispatchWorkflowForTestCombo(
   testCombo: TestCombination,
   runIndex: number
@@ -135,9 +175,6 @@ async function dispatchWorkflowForTestCombo(
         )}`,
       },
     });
-    console.debug(
-      `Dispatched run ${runIndex} of ${testComboToString(testCombo)}.`
-    );
     return true;
   } catch (e) {
     console.log(
@@ -148,31 +185,62 @@ async function dispatchWorkflowForTestCombo(
   }
 }
 
-/* Checks if all the results in a set of workflow runs are the same and non-empty */
-function checkRunSetResults(results: Array<Array<string>>) {
-  const isAllPopulated = results.every((arr, i) => {
-    if (
-      arr.length > 0 &&
-      arr.every((s) => s !== null && s.trim().length !== 0)
-    ) {
-      return true;
-    } else {
-      console.error(`${i}th array has a blank response from screenreader`);
-      return false;
-    }
-  });
-  console.log("All populated: ", isAllPopulated);
+/**
+ * Checks if all the results in a set of workflow runs are the same and non-empty
+ * @returns true if all the results are the same and non-empty, false otherwise
+ */
+function checkRunSetResults(results: Array<WorkflowRunResults>) {
+  const isAllPopulated = results.reduce((allPopulated, workflowResults) => {
+    return (
+      allPopulated &&
+      workflowResults.reduce((rowPopulated, row) => {
+        if (
+          row.screenreaderResponses.length > 0 &&
+          row.screenreaderResponses.every(
+            (s: string) => s !== null && s.trim().length !== 0
+          )
+        ) {
+          return rowPopulated;
+        } else {
+          console.error(
+            `Test CSV row ${row.testCsvRow} has a blank response from screenreader`
+          );
+          console.debug(row.screenreaderResponses);
+          return false;
+        }
+      }, true)
+    );
+  }, true);
+  console.log("All screenreader responses populated: ", isAllPopulated);
 
-  const isAllEqual = results.every((arr, i) => {
-    if (arr.every((a, j) => a == results[0][j])) {
-      return true;
-    } else {
-      console.error(`${i}th array of screenreader responses is different`);
-      console.debug(diff(arr, results[0]));
-      return false;
-    }
-  });
-  console.log("All the same: ", isAllEqual);
+  const isAllEqual = results.reduce((allEqual, workflowResults) => {
+    return (
+      allEqual &&
+      workflowResults.reduce((responsesEqual, run, runIndex) => {
+        if (runIndex === 0) return responsesEqual; // First run is the reference
+        if (
+          run.screenreaderResponses.every(
+            (a: string, j: number) =>
+              a === workflowResults[0].screenreaderResponses[j]
+          )
+        ) {
+          return responsesEqual;
+        } else {
+          console.error(
+            `Run #${runIndex} of Test CSV row ${run.testCsvRow} has screenreader responses different from Run 0`
+          );
+          console.debug(
+            diff(
+              run.screenreaderResponses,
+              workflowResults[0].screenreaderResponses
+            )
+          );
+          return false;
+        }
+      }, true)
+    );
+  }, true);
+  console.log("All sets equal: ", isAllEqual);
 
   if (!isAllEqual || !isAllPopulated) {
     console.debug("All results:");
@@ -214,6 +282,9 @@ const octokitClient = new Octokit({
 
 // Step through testPlans, waiting for those CI runs to finish before the next begin
 for (const testPlan of testPlans) {
+  console.log(
+    `==========\nRunning tests for test plan ${testPlan}.\n==========`
+  );
   // Filter the list of test combos to only those for this test plan
   const testCombosForTestPlan = testCombinations.filter(
     (testCombo) => testCombo.workflowTestPlan === testPlan
@@ -239,13 +310,16 @@ for (const testPlan of testPlans) {
       console.log(
         `Dispatched ${
           runPromises.length
-        } workflow runs for combination ${testComboToString(testCombo)}:.`
+        } workflow runs for combination ${testComboToString(testCombo)}.`
       );
 
       // Wait to get all results from parallel runs of the same test combo
       const runResults = await Promise.all(runPromises);
 
       // Check if all the results are good
+      console.log(
+        `Checking results for test combo ${testComboToString(testCombo)}.`
+      );
       const isGoodResults = checkRunSetResults(runResults);
       console.log(
         `Results for test combination ${testComboToString(testCombo)}: ${
