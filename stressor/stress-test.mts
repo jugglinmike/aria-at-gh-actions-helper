@@ -31,7 +31,7 @@ const testingMatrix = [
 const port = 8888;
 const workflowHeaderKey = "x-workflow-key";
 const numRuns = 2;
-const testContinueTimeoutMs = 30_000;
+const testContinueTimeoutMs = 60_000;
 
 interface WorkflowCallbackPayload {
   status: string;
@@ -93,9 +93,6 @@ async function setUpTestComboCallbackListener(
   testCombination: TestCombination,
   runIndex: number
 ) {
-  console.log(
-    `Setting up listener for ${getWorkflowRunKey(testCombination, runIndex)}.`
-  );
   const promise = new Promise<WorkflowRunResults>((resolvePromise) => {
     const uniqueWorkflowHeaderValue = `${getWorkflowRunKey(
       testCombination,
@@ -186,67 +183,74 @@ async function dispatchWorkflowForTestCombo(
 }
 
 /**
- * Checks if all the results in a set of workflow runs are the same and non-empty
- * @returns true if all the results are the same and non-empty, false otherwise
+ * Checks the results in a set of workflow runs for population and equality
+ * @returns An object with percentages of populated and equal results
  */
 function checkRunSetResults(results: Array<WorkflowRunResults>) {
-  const isAllPopulated = results.reduce((allPopulated, workflowResults) => {
-    return (
-      allPopulated &&
-      workflowResults.reduce((rowPopulated, row) => {
-        if (
-          row.screenreaderResponses.length > 0 &&
-          row.screenreaderResponses.every(
-            (s: string) => s !== null && s.trim().length !== 0
-          )
-        ) {
-          return rowPopulated;
-        } else {
-          console.error(
-            `Test CSV row ${row.testCsvRow} has a blank response from screenreader`
-          );
-          console.debug(row.screenreaderResponses);
-          return false;
-        }
-      }, true)
-    );
-  }, true);
-  console.log("All screenreader responses populated: ", isAllPopulated);
+  let totalRows = 0;
+  let populatedRows = 0;
+  let equalRows = 0;
 
-  const isAllEqual = results.reduce((allEqual, workflowResults) => {
-    return (
-      allEqual &&
-      workflowResults.reduce((responsesEqual, run, runIndex) => {
-        if (runIndex === 0) return responsesEqual; // First run is the reference
-        if (
-          run.screenreaderResponses.every(
-            (a: string, j: number) =>
-              a === workflowResults[0].screenreaderResponses[j]
-          )
-        ) {
-          return responsesEqual;
+  results.forEach((workflowResults, workflowIndex) => {
+    totalRows += workflowResults.length;
+
+    workflowResults.forEach((row, rowIndex) => {
+      // Check for populated responses
+      const isRowPopulated = row.screenreaderResponses.every(
+        (s: string) => s !== null && s.trim().length !== 0
+      );
+      if (isRowPopulated) {
+        populatedRows++;
+      } else {
+        console.error(
+          `Test CSV row ${row.testCsvRow} has a blank response from screenreader`
+        );
+        console.debug(row.screenreaderResponses);
+      }
+
+      // Check for equal responses (skip first workflow as it's the reference)
+      if (workflowIndex > 0) {
+        const isRowEqual = row.screenreaderResponses.every(
+          (a: string, j: number) =>
+            a === results[0][rowIndex].screenreaderResponses[j]
+        );
+        if (isRowEqual) {
+          equalRows++;
         } else {
           console.error(
-            `Run #${runIndex} of Test CSV row ${run.testCsvRow} has screenreader responses different from Run 0`
+            `Run #${workflowIndex} of Test CSV row ${row.testCsvRow} has screenreader responses different from Run 0`
           );
           console.debug(
             diff(
-              run.screenreaderResponses,
-              workflowResults[0].screenreaderResponses
+              row.screenreaderResponses,
+              results[0][rowIndex].screenreaderResponses
             )
           );
-          return false;
         }
-      }, true)
-    );
-  }, true);
-  console.log("All sets equal: ", isAllEqual);
+      }
+    });
+  });
 
-  if (!isAllEqual || !isAllPopulated) {
-    console.debug("All results:");
-    console.debug(results);
-  }
-  return isAllEqual && isAllPopulated;
+  const totalRowsExcludingFirst = totalRows - results[0].length;
+  const percentPopulated = ((totalRows - populatedRows) / totalRows) * 100;
+  const percentEqual =
+    ((totalRowsExcludingFirst - equalRows) / totalRowsExcludingFirst) * 100;
+
+  console.log(
+    `Percentage of rows with unpopulated responses: ${percentPopulated.toFixed(
+      2
+    )}%, (${totalRows - populatedRows} of ${totalRows})`
+  );
+  console.log(
+    `Percentage of rows with unequal responses: ${percentEqual.toFixed(2)}%, (${
+      totalRowsExcludingFirst - equalRows
+    } of ${totalRowsExcludingFirst})`
+  );
+
+  return {
+    percentUnpopulated: percentPopulated,
+    percentUnequal: percentEqual,
+  };
 }
 
 // Get all the test combos
@@ -283,7 +287,7 @@ const octokitClient = new Octokit({
 // Step through testPlans, waiting for those CI runs to finish before the next begin
 for (const testPlan of testPlans) {
   console.log(
-    `==========\nRunning tests for test plan ${testPlan}.\n==========`
+    `===============\nRunning tests for test plan ${testPlan}.\n===============`
   );
   // Filter the list of test combos to only those for this test plan
   const testCombosForTestPlan = testCombinations.filter(
@@ -321,11 +325,7 @@ for (const testPlan of testPlans) {
         `Checking results for test combo ${testComboToString(testCombo)}.`
       );
       const isGoodResults = checkRunSetResults(runResults);
-      console.log(
-        `Results for test combination ${testComboToString(testCombo)}: ${
-          isGoodResults ? "PASS" : "FAIL"
-        }`
-      );
+
       return isGoodResults;
     })
   );
