@@ -5,15 +5,6 @@ import { diff } from "jest-diff";
 
 const DEBUG = process.env.DEBUG === "true" || process.env.DEBUG === "1";
 
-/**
- * Logs the message to the console if DEBUG is true
- */
-const debugLog = (...args: Parameters<typeof console.debug>): void => {
-  if (DEBUG) {
-    console.debug(...args);
-  }
-};
-
 const testPlans = [
   "tests/menu-button-actions-active-descendant",
   "tests/alert",
@@ -60,6 +51,15 @@ type WorkflowRunResults = Array<{
   screenreaderResponses: Array<string>;
   testCsvRow: number;
 }>;
+
+/**
+ * Logs the message to the console if DEBUG is true
+ */
+const debugLog = (...args: Parameters<typeof console.debug>): void => {
+  if (DEBUG) {
+    console.debug(...args);
+  }
+};
 
 /**
  * Creates a unique key for a workflow run, given the test combo and run index
@@ -343,20 +343,21 @@ for (const testPlan of testPlans) {
       console.log(
         `Checking results for test combo ${testComboToString(testCombo)}.`
       );
-      const isGoodResults = checkRunSetResults(runResults);
+      const runResultStats = checkRunSetResults(runResults);
 
-      return isGoodResults;
+      return { ...testCombo, ...runResultStats };
     })
   );
 
-  // Check if all the test combos passed
-  const isAllGoodResults = testCombinationResults.every((result) => result);
   console.log(
-    `All results passing for test plan ${testPlan}: ${isAllGoodResults}.`
+    `===============\nCompleted tests for test plan ${testPlan} with results: \n===============`
   );
-  console.log(
-    `===============\nCompleted tests for test plan ${testPlan}.\n===============`
-  );
+  testCombinationResults.forEach((result) => {
+    console.log(`${result.workflowId}: ${result.workflowBrowser}`);
+    console.log(`Percent unpopulated: ${result.percentUnpopulated}`);
+    console.log(`Percent unequal: ${result.percentUnequal}`);
+  });
+  console.log(`==============================`);
 }
 
 process.exit(0);
