@@ -108,7 +108,7 @@ $bmp.Save("$loglocation\test.png")
 
 Write-Output "Launching automation-harness host"
 $hostParams = "--debug"
-node aria-at-automation-harness/bin/host.js  run-plan --plan-workingdir aria-at/build/$env:ARIA_AT_WORK_DIR $env:ARIA_AT_TEST_PATTERN $hostParams --agent-web-driver-url=http://127.0.0.1:4444 --agent-at-driver-url=ws://127.0.0.1:3031/command --reference-hostname=127.0.0.1 --agent-web-driver-browser=$env:BROWSER | Tee-Object -FilePath $loglocation\harness-run.log
+node aria-at-automation-harness/bin/host.js  run-plan --plan-workingdir aria-at/build/$env:ARIA_AT_WORK_DIR $env:ARIA_AT_TEST_PATTERN $hostParams --web-driver-url=http://127.0.0.1:4444 --at-driver-url=ws://127.0.0.1:3031/command --reference-hostname=127.0.0.1 --web-driver-browser=$env:BROWSER | Tee-Object -FilePath $loglocation\harness-run.log
 
 $graphics.CopyFromScreen($bounds.Location, [Drawing.Point]::Empty, $bounds.size)
 $bmp.Save("$loglocation\test2.png")
