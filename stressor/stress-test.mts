@@ -18,14 +18,13 @@ const testPlans = [
   "tests/menu-button-actions-active-descendant",
   "tests/alert",
   "tests/horizontal-slider",
-  // "tests/command-button",
   "tests/command-button",
-  // "tests/disclosure-navigation",
-  // "tests/link-span-text",
-  // "tests/dialog",
-  // "tests/menu-button-navigation",
-  // "tests/radiogroup-aria-activedescendant",
-  // "tests/toggle-button/toggle-button-navigation",
+  "tests/disclosure-navigation",
+  "tests/link-span-text",
+  "tests/dialog",
+  "tests/menu-button-navigation",
+  "tests/radiogroup-aria-activedescendant",
+  "tests/toggle-button/toggle-button-navigation",
 ];
 const owner = "bocoup",
   repo = "aria-at-gh-actions-helper";
@@ -33,7 +32,6 @@ const defaultBranch = "main";
 const testingMatrix = [
   {
     workflowId: "voiceover-test.yml",
-    browsers: ["chrome", "firefox", "safari"],
     browsers: ["safari", "chrome", "firefox"],
   },
   {
@@ -43,7 +41,7 @@ const testingMatrix = [
 ];
 const port = 8888;
 const workflowHeaderKey = "x-workflow-key";
-const numRuns = 2;
+const numRuns = 3;
 const testContinueTimeoutMs = 60_000;
 
 interface WorkflowCallbackPayload {
