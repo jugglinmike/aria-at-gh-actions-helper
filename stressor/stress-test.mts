@@ -3,11 +3,23 @@ import ngrok from "ngrok";
 import { Octokit } from "@octokit/rest";
 import { diff } from "jest-diff";
 
+const DEBUG = process.env.DEBUG === "true" || process.env.DEBUG === "1";
+
+/**
+ * Logs the message to the console if DEBUG is true
+ */
+const debugLog = (...args: Parameters<typeof console.debug>): void => {
+  if (DEBUG) {
+    console.debug(...args);
+  }
+};
+
 const testPlans = [
   "tests/menu-button-actions-active-descendant",
   "tests/alert",
   "tests/horizontal-slider",
   // "tests/command-button",
+  "tests/command-button",
   // "tests/disclosure-navigation",
   // "tests/link-span-text",
   // "tests/dialog",
@@ -22,6 +34,7 @@ const testingMatrix = [
   {
     workflowId: "voiceover-test.yml",
     browsers: ["chrome", "firefox", "safari"],
+    browsers: ["safari", "chrome", "firefox"],
   },
   {
     workflowId: "nvda-test.yml",
@@ -117,6 +130,14 @@ async function setUpTestComboCallbackListener(
           if (parsedBody.status === "RUNNING") {
             // Turns out there are more results coming
             clearTimeout(timeoutId);
+            debugLog(
+              `Workflow run ${getWorkflowRunKey(
+                testCombination,
+                runIndex
+              )} is still running (${
+                Date.now() - timeoutStartTime
+              }ms elapsed since timeout start).`
+            );
           }
           if (parsedBody.status === "COMPLETED") {
             results.push({
@@ -128,7 +149,7 @@ async function setUpTestComboCallbackListener(
             clearTimeout(timeoutId);
             timeoutStartTime = Date.now();
             timeoutId = setTimeout(() => {
-              console.log(
+              debugLog(
                 `Workflow run ${getWorkflowRunKey(
                   testCombination,
                   runIndex
@@ -205,7 +226,7 @@ function checkRunSetResults(results: Array<WorkflowRunResults>) {
         console.error(
           `Test CSV row ${row.testCsvRow} has a blank response from screenreader`
         );
-        console.debug(row.screenreaderResponses);
+        console.error(row.screenreaderResponses);
       }
 
       // Check for equal responses (skip first workflow as it's the reference)
@@ -220,7 +241,7 @@ function checkRunSetResults(results: Array<WorkflowRunResults>) {
           console.error(
             `Run #${workflowIndex} of Test CSV row ${row.testCsvRow} has screenreader responses different from Run 0`
           );
-          console.debug(
+          console.error(
             diff(
               row.screenreaderResponses,
               results[0][rowIndex].screenreaderResponses
@@ -255,8 +276,8 @@ function checkRunSetResults(results: Array<WorkflowRunResults>) {
 
 // Get all the test combos
 const testCombinations = enumerateTestCombinations(testingMatrix, testPlans);
-console.debug("Test Plans:\n", testPlans);
-console.debug("Testing Matrix:\n", testingMatrix);
+console.log("Test Plans:\n", testPlans);
+console.log("Testing Matrix:\n", testingMatrix);
 console.log(
   `Will dispatch ${
     testCombinations.length
@@ -268,6 +289,7 @@ console.log(
 const server = http.createServer();
 server.listen(port);
 console.log(`Local server started at port ${port}`);
+server.setMaxListeners(50);
 
 const ngrokUrl = await ngrok.connect({
   port,
@@ -310,8 +332,7 @@ for (const testPlan of testPlans) {
           runPromises.push(listenerPromise);
         }
       }
-
-      console.log(
+      debugLog(
         `Dispatched ${
           runPromises.length
         } workflow runs for combination ${testComboToString(testCombo)}.`
@@ -334,6 +355,9 @@ for (const testPlan of testPlans) {
   const isAllGoodResults = testCombinationResults.every((result) => result);
   console.log(
     `All results passing for test plan ${testPlan}: ${isAllGoodResults}.`
+  );
+  console.log(
+    `===============\nCompleted tests for test plan ${testPlan}.\n===============`
   );
 }
 
