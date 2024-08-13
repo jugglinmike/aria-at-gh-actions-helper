@@ -33,12 +33,11 @@ const testingMatrix = [
 const port = 8888;
 const workflowHeaderKey = "x-workflow-key";
 const numRuns = 3;
-const testContinueTimeoutMs = 60_000;
 
 interface WorkflowCallbackPayload {
   status: string;
   testCsvRow: number;
-  responses: Array<string>;
+  responses?: Array<string>;
 }
 
 interface TestCombination {
@@ -110,8 +109,6 @@ async function setUpTestComboCallbackListener(
       runIndex
     )}`;
     const results: WorkflowRunResults = [];
-    let timeoutId: NodeJS.Timeout;
-    let timeoutStartTime: number;
     const requestListener = (
       req: http.IncomingMessage,
       res: http.ServerResponse
@@ -125,37 +122,24 @@ async function setUpTestComboCallbackListener(
         req.on("end", () => {
           const parsedBody: WorkflowCallbackPayload = JSON.parse(body);
 
-          if (parsedBody.status === "RUNNING") {
-            // Turns out there are more results coming
-            clearTimeout(timeoutId);
-            debugLog(
-              `Workflow run ${getWorkflowRunKey(
-                testCombination,
-                runIndex
-              )} is still running (${
-                Date.now() - timeoutStartTime
-              }ms elapsed since timeout start).`
-            );
-          }
           if (parsedBody.status === "COMPLETED") {
-            results.push({
-              screenreaderResponses: parsedBody.responses,
-              testCsvRow: parsedBody.testCsvRow,
-            });
-            // We don't get an explicit signal when all the tests come in,
-            // so we wait to see if we another "RUNNING" message.
-            clearTimeout(timeoutId);
-            timeoutStartTime = Date.now();
-            timeoutId = setTimeout(() => {
+            // if results are included, then we collect them
+            // if not, then we assume this is a status update and the test plan is done
+            if (parsedBody.responses !== undefined) {
+              results.push({
+                screenreaderResponses: parsedBody.responses,
+                testCsvRow: parsedBody.testCsvRow,
+              });
+            } else {
               debugLog(
                 `Workflow run ${getWorkflowRunKey(
                   testCombination,
                   runIndex
-                )} seems to be done.`
+                )} finished.`
               );
               resolvePromise(results);
               server.removeListener("request", requestListener);
-            }, testContinueTimeoutMs);
+            }
           }
           res.end();
         });
@@ -185,6 +169,7 @@ async function dispatchWorkflowForTestCombo(
       inputs: {
         work_dir: workflowTestPlan,
         callback_url: ngrokUrl,
+        status_url: ngrokUrl,
         callback_header: `${workflowHeaderKey}:${getWorkflowRunKey(
           testCombo,
           runIndex
