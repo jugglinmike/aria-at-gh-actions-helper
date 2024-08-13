@@ -353,9 +353,17 @@ for (const testPlan of testPlans) {
     `===============\nCompleted tests for test plan ${testPlan} with results: \n===============`
   );
   testCombinationResults.forEach((result) => {
-    console.log(`${result.workflowId}: ${result.workflowBrowser}`);
-    console.log(`Percent unpopulated: ${result.percentUnpopulated}`);
-    console.log(`Percent unequal: ${result.percentUnequal}`);
+    console.log(`${result.workflowId} + ${result.workflowBrowser}`);
+    console.log(
+      `Unpopulated responses across all ${numRuns} runs: ${result.percentUnpopulated.toFixed(
+        2
+      )}%`
+    );
+    console.log(
+      `Unequal responses between all ${numRuns} runs: ${result.percentUnequal.toFixed(
+        2
+      )}%`
+    );
   });
   console.log(`==============================`);
 }
