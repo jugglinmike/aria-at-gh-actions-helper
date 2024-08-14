@@ -144,7 +144,7 @@ jobs:
           cd C:\Scream\Install\driver
           C:\Scream\Install\helpers\devcon install Scream.inf *Scream
 
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           cache-dependency-path: nvda-at-automation/Server/go.sum
 
