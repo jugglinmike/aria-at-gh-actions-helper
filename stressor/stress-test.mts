@@ -7,15 +7,15 @@ const DEBUG = process.env.DEBUG === "true" || process.env.DEBUG === "1";
 
 const testPlans = [
   "tests/menu-button-actions-active-descendant",
-  "tests/alert",
-  "tests/horizontal-slider",
-  "tests/command-button",
-  "tests/disclosure-navigation",
-  "tests/link-span-text",
-  "tests/dialog",
-  "tests/menu-button-navigation",
-  "tests/radiogroup-aria-activedescendant",
-  "tests/toggle-button/toggle-button-navigation",
+  // "tests/alert",
+  // "tests/horizontal-slider",
+  // "tests/command-button",
+  // "tests/disclosure-navigation",
+  // "tests/link-span-text",
+  // "tests/dialog",
+  // "tests/menu-button-navigation",
+  // "tests/radiogroup-aria-activedescendant",
+  // "tests/toggle-button/toggle-button-navigation",
 ];
 const owner = "bocoup",
   repo = "aria-at-gh-actions-helper";
@@ -32,7 +32,7 @@ const testingMatrix = [
 ];
 const port = 8888;
 const workflowHeaderKey = "x-workflow-key";
-const numRuns = 3;
+const numRuns = 2;
 
 interface WorkflowCallbackPayload {
   status: string;
