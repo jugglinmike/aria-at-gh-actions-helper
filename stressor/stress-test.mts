@@ -387,12 +387,13 @@ for (const testPlan of testPlans) {
   );
 
   console.log(`\n## Summary\n`);
+  console.log(`| Screenreader | Browser | Runs | Unequal Responses (%) |`);
+  console.log(`| --- | --- | --- | --- |`);
   testCombinationResults.forEach((result) => {
-    console.log(`${result.workflowId} + ${result.workflowBrowser}`);
     console.log(
-      `Unequal responses between all ${numRuns} runs: ${result.percentUnequal.toFixed(
-        2
-      )}%`
+      `| ${workflowIdAsLabel(result.workflowId)} | ${
+        result.workflowBrowser
+      } | ${numRuns} | ${result.percentUnequal.toFixed(2)}% |`
     );
   });
 }
