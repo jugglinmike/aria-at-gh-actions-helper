@@ -8,9 +8,9 @@ const DEBUG = process.env.DEBUG === "true" || process.env.DEBUG === "1";
 const testPlans = [
   // "tests/menu-button-actions-active-descendant",
   // "tests/alert",
-  "tests/horizontal-slider",
+  // "tests/horizontal-slider",
   // "tests/command-button",
-  // "tests/disclosure-navigation",
+  "tests/disclosure-navigation",
   // "tests/link-span-text",
   // "tests/modal-dialog",
   // "tests/menu-button-navigation",
@@ -32,7 +32,7 @@ const testingMatrix = [
 ];
 const port = 8888;
 const workflowHeaderKey = "x-workflow-key";
-const numRuns = 6;
+const numRuns = 5;
 
 interface WorkflowCallbackPayload {
   status: string;
@@ -249,64 +249,46 @@ function findMode(arr: Array<Array<string>>): Array<string> {
  */
 function checkRunSetResults(results: Array<WorkflowRunResults>) {
   let totalRows = 0;
-  let populatedRows = 0;
   let equalRows = 0;
 
   const comparisonWorkflowRunResults = findMostCommonRunResults(results);
 
-  results.forEach((workflowResults, workflowIndex) => {
-    totalRows += workflowResults.length;
-
-    workflowResults.forEach((row, rowIndex) => {
-      // Check for populated responses
-      // const isRowPopulated = row.screenreaderResponses.every(
-      //   (s: string) => s !== null && s.trim().length !== 0
-      // );
-      // if (isRowPopulated) {
-      //   populatedRows++;
-      // } else {
-      //   console.error(
-      //     `Test CSV row ${row.testCsvRow} has a blank response from screenreader`
-      //   );
-      //   console.error(row.screenreaderResponses);
-      // }
-
-      const comparisonResponses = comparisonWorkflowRunResults.find(
-        (r) => r.testCsvRow === row.testCsvRow
-      )!.screenreaderResponses;
-
-      // Check for equal responses against the most common set
+  comparisonWorkflowRunResults.forEach((compTest) => {
+    console.log(`\n### TestId ${compTest.testCsvRow}\n`);
+    console.log(`\n#### Comparison Set\n`);
+    console.log(`\`\`\`\n${compTest.screenreaderResponses}\n\`\`\``);
+    console.log(`\n#### Mismatches\n`);
+    results.forEach((result, i) => {
+      totalRows++;
+      const resultResponses =
+        result.find((l) => l.testCsvRow === compTest.testCsvRow)
+          ?.screenreaderResponses ?? [];
       const isRowEqual =
-        JSON.stringify(row.screenreaderResponses) ===
-        JSON.stringify(comparisonResponses);
+        JSON.stringify(resultResponses) ===
+        JSON.stringify(compTest.screenreaderResponses);
       if (isRowEqual) {
         equalRows++;
       } else {
+        console.error(`\n##### Run #${i}\n`);
         console.error(
-          `Run #${workflowIndex} of Test CSV row ${row.testCsvRow} has screenreader responses different from the most common set`
+          `\`\`\`diff\n${diff(
+            compTest.screenreaderResponses,
+            resultResponses
+          )}\n\`\`\``
         );
-        console.error(diff(comparisonResponses, row.screenreaderResponses));
       }
     });
   });
 
-  const percentPopulated = ((totalRows - populatedRows) / totalRows) * 100;
-  const percentEqual = ((totalRows - equalRows) / totalRows) * 100;
+  const percentUnequal = ((totalRows - equalRows) / totalRows) * 100;
 
-  console.log(
-    `Percentage of rows with unpopulated responses: ${percentPopulated.toFixed(
-      2
-    )}%, (${totalRows - populatedRows} of ${totalRows})`
-  );
-  console.log(
-    `Percentage of rows with unequal responses: ${percentEqual.toFixed(2)}%, (${
-      totalRows - equalRows
-    } of ${totalRows})`
-  );
+  console.log(`\n#### Stats\n`);
+  console.log(`- Total Rows: ${totalRows}`);
+  console.log(`- Unequal Rows: ${totalRows - equalRows}`);
+  console.log(`- Percentage Unequal: ${percentUnequal.toFixed(2)}%`);
 
   return {
-    percentUnpopulated: percentPopulated,
-    percentUnequal: percentEqual,
+    percentUnequal,
   };
 }
 
@@ -344,9 +326,7 @@ const octokitClient = new Octokit({
 
 // Step through testPlans, waiting for those CI runs to finish before the next begin
 for (const testPlan of testPlans) {
-  console.log(
-    `===============\nRunning tests for test plan ${testPlan}.\n===============`
-  );
+  console.log(`# Test plan: ${testPlan}\n`);
   // Filter the list of test combos to only those for this test plan
   const testCombosForTestPlan = testCombinations.filter(
     (testCombo) => testCombo.workflowTestPlan === testPlan
@@ -378,32 +358,22 @@ for (const testPlan of testPlans) {
       const runResults = await Promise.all(runPromises);
 
       // Check if all the results are good
-      console.log(
-        `Checking results for test combo ${testComboToString(testCombo)}.`
-      );
+      console.log(`## ${testCombo.workflowId} / ${testCombo.workflowBrowser}.`);
       const runResultStats = checkRunSetResults(runResults);
 
       return { ...testCombo, ...runResultStats };
     })
   );
 
-  console.log(
-    `===============\nCompleted tests for test plan ${testPlan} with results: \n===============`
-  );
+  console.log(`\n## Summary\n`);
   testCombinationResults.forEach((result) => {
     console.log(`${result.workflowId} + ${result.workflowBrowser}`);
-    console.log(
-      `Unpopulated responses across all ${numRuns} runs: ${result.percentUnpopulated.toFixed(
-        2
-      )}%`
-    );
     console.log(
       `Unequal responses between all ${numRuns} runs: ${result.percentUnequal.toFixed(
         2
       )}%`
     );
   });
-  console.log(`==============================`);
 }
 
 process.exit(0);
