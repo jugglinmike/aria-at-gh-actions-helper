@@ -30,6 +30,7 @@ const testingMatrix = [
     browsers: ["chrome", "firefox"],
   },
 ];
+
 const port = 8888;
 const workflowHeaderKey = "x-workflow-key";
 const numRuns = 5;
@@ -60,6 +61,22 @@ const debugLog = (...args: Parameters<typeof console.debug>): void => {
     console.debug(...args);
   }
 };
+
+/*
+ * Get a nice human readable string for the given GitHub workflow id
+ */
+function workflowIdAsLabel(workflowId: string): string {
+  switch (workflowId) {
+    case "voiceover-test.yml":
+      return "VoiceOver";
+
+    case "nvda-test.yml":
+      return "NVDA";
+
+    default:
+      return workflowId;
+  }
+}
 
 /**
  * Creates a unique key for a workflow run, given the test combo and run index
@@ -358,7 +375,11 @@ for (const testPlan of testPlans) {
       const runResults = await Promise.all(runPromises);
 
       // Check if all the results are good
-      console.log(`## ${testCombo.workflowId} / ${testCombo.workflowBrowser}.`);
+      console.log(
+        `## ${workflowIdAsLabel(testCombo.workflowId)} on ${
+          testCombo.workflowBrowser
+        }.`
+      );
       const runResultStats = checkRunSetResults(runResults);
 
       return { ...testCombo, ...runResultStats };
