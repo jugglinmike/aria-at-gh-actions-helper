@@ -7,7 +7,11 @@ It works sequentially through the list of test plans, completing the runs for on
 ## Setup
 
 1. Install dependencies with `npm i`
-2. set an environment variable `GITHUB_TOKEN` with an access token. See [these docs](https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#create-a-workflow-dispatch-event) for which token needs which auth scopes and how to generate them.
+2. set an environment variable `GITHUB_TOKEN` with an access token. To generate a new token:
+
+* https://github.com/settings/personal-access-tokens/new
+* Generate a new token, make sure it has access to the repo you'll be running the stress actions on, and give it Read & Write "Actions" permissions (everything else can stay default).
+* For more information see [these docs](https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#create-a-workflow-dispatch-event) for which token needs which auth scopes and how to generate them.
 
 ## Running
 
