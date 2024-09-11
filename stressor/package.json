@@ -4,7 +4,8 @@
   "description": "Stress test Test Plans via CI workflows",
   "main": "stress-test.mts",
   "scripts": {
-    "stress-test": "node --loader ts-node/esm stress-test.mts"
+    "stress-test": "node --loader ts-node/esm stress-test.mts",
+    "cancel-runs": "node --loader ts-node/esm cancel-all-workflows.mts"
   },
   "author": "",
   "license": "MIT",
