@@ -21,7 +21,7 @@ function clean_up {
 }
 trap clean_up EXIT
 
-aria-at-automation-driver/package/bin/at-driver serve --port 3031 > at-driver.log 2>&1 &
+./node_modules/.bin/at-driver serve --port 3031 > at-driver.log 2>&1 &
 atdriver_pid=$!
 
 poll_url() {
