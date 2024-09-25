@@ -64,13 +64,6 @@ jobs:
         if: inputs.status_url
         run: ./report-status.sh QUEUED ''
 
-      - uses: robinraju/release-downloader@v1.10
-        with:
-          repository: "w3c/aria-at-automation-driver"
-          tag: "v0.0.1-beta"
-          extract: true
-          out-file-path: aria-at-automation-driver
-
       - name: Use Node.js 20.x
         uses: actions/setup-node@v4
         with:
@@ -95,18 +88,17 @@ jobs:
       - name: Setup Environment
         uses: guidepup/setup-action@0.16.0
 
-      - name: "automation-driver: npm install"
-        working-directory: aria-at-automation-driver/package
-        run: npm install
+      - name: Install the macOS AT Driver server package
+        run: npm install @bocoup/macos-at-driver-server@"~0.0.6"
 
-      - name: "automation-driver: install"
+      - name: Configure the system to support the AT Driver server
         env:
           DEBUG: "*"
-        working-directory: aria-at-automation-driver/package
-        run: ./bin/at-driver install --unattended
+        working-directory: node_modules/.bin
+        run: ./at-driver install --unattended
 
-      - name: Wait for server to be ready
-        working-directory: aria-at-automation-driver/package
+      - name: Wait for the AT Driver server to be ready
+        working-directory: node_modules/.bin
         run: ../../wait-for-server.sh
 
       - name: Checkout aria-at ref ${{ inputs.aria_at_ref || 'master' }}
