@@ -21,7 +21,7 @@ const testPlans = [
   "tests/radiogroup-aria-activedescendant",
   "tests/toggle-button",
 ];
-const owner = "gnarf",
+const owner = "bocoup",
   repo = "aria-at-gh-actions-helper";
 const defaultBranch = "main";
 
@@ -411,14 +411,13 @@ const octokitClient = new Octokit({
 
 
 
-// const allResults: Map<TestCombination, CompleteTestComboRunResult> = new Map();
+const allResults: Map<TestCombination, CompleteTestComboRunResult> = new Map();
 
-// Debug helper: write the needed "allResults" for this run to a json file
-import { readFile } from "node:fs/promises";
-
-const allResults: Map<TestCombination, CompleteTestComboRunResult> = new Map(
-  JSON.parse(await readFile("stressor-run.json", "utf-8"))
-);
+// Debug helper: read the needed "allResults" for this run to a json file
+// import { readFile } from "node:fs/promises";
+// const allResults: Map<TestCombination, CompleteTestComboRunResult> = new Map(
+//  JSON.parse(await readFile("stressor-run.json", "utf-8"))
+// );
 
 
 if (allResults.size == 0) {
