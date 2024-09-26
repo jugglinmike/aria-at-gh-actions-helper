@@ -488,7 +488,7 @@ const formatResultsForMD = (results: Map<TestCombination, CompleteTestComboRunRe
 
 
   console.log(`* __Total Tests:__ ${generalSummary.totalRuns}`);
-  console.log(`* __Unequal %:__ ${((generalSummary.totalRuns - generalSummary.totalEqual) * 100 / generalSummary.totalRuns).toFixed(2)}%`)
+  console.log(`* __Total Unequal %:__ ${((generalSummary.totalRuns - generalSummary.totalEqual) * 100 / generalSummary.totalRuns).toFixed(2)}%`)
   console.log(`* __Number of runs per combo:__ ${numRuns}`);
   console.log(`* __Maximum possible "Unequal %" based on number of runs:__ ${((numRuns - 1) * 100 / numRuns).toFixed(2)}%`);
   console.log(`* __Test Plans:__\n`);
