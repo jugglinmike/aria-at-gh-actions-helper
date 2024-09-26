@@ -337,10 +337,6 @@ function checkRunSetResults(runs: Array<WorkflowRun>): ComparisonRunResult {
 
   const percentUnequal = ((totalRows - equalRows) / totalRows) * 100;
 
-  // console.log(`\n#### Stats\n`);
-  // console.log(`- Total Rows: ${totalRows}`);
-  // console.log(`- Unequal Rows: ${totalRows - equalRows}`);
-  // console.log(`- Percentage Unequal: ${percentUnequal.toFixed(2)}%`);
 
   return {
     comparedResults,
