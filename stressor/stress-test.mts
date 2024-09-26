@@ -370,11 +370,6 @@ const spawnAndCollectWorkflows = async (testCombo: TestCombination): Promise<Com
   // Wait to get all results from parallel runs of the same test combo
   const runResults = await Promise.all(runPromises);
   // Check if all the results are good
-  // console.log(
-  //   `## ${workflowIdAsLabel(testCombo.workflowId)} on ${
-  //     testCombo.workflowBrowser
-  //   }.`
-  // );
   const runResultStats = checkRunSetResults(runResults);
   const comboResult: CompleteTestComboRunResult = { ...testCombo, ...runResultStats, logUrls: runResults.map(run => run.runLogsUrl) };
   debugLog(`${testComboToString(testCombo)} done`, comboResult);
