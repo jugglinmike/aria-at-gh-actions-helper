@@ -520,14 +520,23 @@ const formatResultsForMD = (results: Map<TestCombination, CompleteTestComboRunRe
   generateSummary('AT', result => result.workflowId, workflowIdAsLabel);
   generateSummary('Browser', result => result.workflowBrowser);
 
+  const generateHeaderTextForCombo = (combo: TestCombination):string =>
+    `${combo.workflowTestPlan} ${workflowIdAsLabel(combo.workflowId)} ${combo.workflowBrowser}`;
+
+  const generateHeaderLinkForCombo = (combo: TestCombination):string =>
+    '#' + generateHeaderTextForCombo(combo)
+      .replace(/[^\s\w-]/g, '')
+      .replace(/\s+/g, '-')
+      .toLowerCase();
+
   console.log(`\n## Summary by All\n`);
-  console.log(`| Test Plan | AT | Browser | Total Tests | Unequal Responses | Unequal % |`);
-  console.log("| --- | --- | --- | --- | --- | --- |");
+  console.log(`| Test Plan | AT | Browser | Total Tests | Unequal Responses | Unequal % | Heading Link |`);
+  console.log("| --- | --- | --- | --- | --- | --- | --- |");
   for (const combo of keys) {
     const comboResults = results.get(combo);
     // typescript insists this is possibly undefined
     if (comboResults) {
-      console.log(`| ${comboResults.workflowTestPlan} | ${workflowIdAsLabel(comboResults.workflowId)} | ${comboResults.workflowBrowser} | ${comboResults.totalRows} | ${comboResults.unequalRows} | ${comboResults.percentUnequal.toFixed(2)}% |`)
+      console.log(`| ${comboResults.workflowTestPlan} | ${workflowIdAsLabel(comboResults.workflowId)} | ${comboResults.workflowBrowser} | ${comboResults.totalRows} | ${comboResults.unequalRows} | ${comboResults.percentUnequal.toFixed(2)}% | [#](${generateHeaderLinkForCombo(combo)}) |`)
     }
   }
 
@@ -544,7 +553,7 @@ const formatResultsForMD = (results: Map<TestCombination, CompleteTestComboRunRe
     const comboResults = results.get(combo);
     // typescript insists this is possibly undefined
     if (comboResults) {
-      console.log(`\n## ${combo.workflowTestPlan} ${workflowIdAsLabel(combo.workflowId)} ${combo.workflowBrowser}\n`);
+      console.log(`\n## ${generateHeaderTextForCombo(combo)}\n`);
       console.log(`\n### Run Logs\n`);
       let logNumber = 0;
       for (const url of comboResults.logUrls) {
