@@ -543,7 +543,7 @@ const formatResultsForMD = (results: Map<TestCombination, CompleteTestComboRunRe
   const formatResponses = (responses: Array<string>, newlineTab: string = '\n    '): string =>
     responses
       .map((response, index) => {
-        const responseWrapped = response.split('\n').map(line => wrap(line, {width: 60, newline: newlineTab})).join(`\n${newlineTab}`);
+        const responseWrapped = response.split('\n').map(line => wrap(line, {width: 60, newline: newlineTab})).join(newlineTab);
         return `Response ${index+1}:${newlineTab}${responseWrapped}`;
       })
       .join('\n')
