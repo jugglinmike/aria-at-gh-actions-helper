@@ -367,12 +367,8 @@ const spawnAndCollectWorkflows = async (testCombo: TestCombination): Promise<Com
   for (let runIndex = 0; runIndex < numRuns; runIndex++) {
       runPromises.push(limitWorkflows(() => dispatchAndListen(testCombo, runIndex)));
   }
-  let settled = 0;
   // Wait to get all results from parallel runs of the same test combo
-  const runResults = await Promise.all(runPromises.map(promise => promise.then(result => {
-    settled++;
-    return result;
-  })));
+  const runResults = await Promise.all(runPromises);
   // Check if all the results are good
   // console.log(
   //   `## ${workflowIdAsLabel(testCombo.workflowId)} on ${
