@@ -2,32 +2,39 @@ import * as http from "node:http";
 import ngrok from "ngrok";
 import { Octokit } from "@octokit/rest";
 import { diff } from "jest-diff";
+import test, { run } from "node:test";
+import wrap from "word-wrap";
+import pLimit from "p-limit";
 
 const DEBUG = process.env.DEBUG === "true" || process.env.DEBUG === "1";
+const limitWorkflows = pLimit(8);
 
 const testPlans = [
-  // "tests/menu-button-actions-active-descendant",
-  // "tests/alert",
-  // "tests/horizontal-slider",
-  // "tests/command-button",
+  "tests/menu-button-actions-active-descendant",
+  "tests/alert",
+  "tests/horizontal-slider",
+  "tests/command-button",
   "tests/disclosure-navigation",
-  // "tests/link-span-text",
-  // "tests/modal-dialog",
-  // "tests/menu-button-navigation",
-  // "tests/radiogroup-aria-activedescendant",
-  // "tests/toggle-button",
+  "tests/link-span-text",
+  "tests/modal-dialog",
+  "tests/menu-button-navigation",
+  "tests/radiogroup-aria-activedescendant",
+  "tests/toggle-button",
 ];
 const owner = "bocoup",
   repo = "aria-at-gh-actions-helper";
 const defaultBranch = "main";
+
+// ordered this way because voiceover usually finishes quicker, and when you only
+// have 3 jobs left it matters... :)
 const testingMatrix = [
-  {
-    workflowId: "voiceover-test.yml",
-    browsers: ["safari", "chrome", "firefox"],
-  },
   {
     workflowId: "nvda-test.yml",
     browsers: ["chrome", "firefox"],
+  },
+  {
+    workflowId: "voiceover-test.yml",
+    browsers: ["safari", "chrome", "firefox"],
   },
 ];
 
@@ -40,6 +47,7 @@ interface WorkflowCallbackPayload {
   testCsvRow?: number;
   presentationNumber?: number;
   responses?: Array<string>;
+  externalLogsUrl?: string;
 }
 
 interface TestCombination {
@@ -53,12 +61,41 @@ type WorkflowRunResults = Array<{
   testCsvRow: number;
 }>;
 
+type WorkflowRun = {
+  runLogsUrl: string;
+  results: WorkflowRunResults;
+};
+
+type ComparisonTestRunDifference = {
+  runId: number;
+  responses: Array<string>;
+}
+
+type ComparisonTestRunResult = {
+  testCsvRow: number;
+  baselineResponses: Array<string>;
+  differences: Array<ComparisonTestRunDifference>;
+};
+
+interface ComparisonRunResult {
+  percentUnequal: number;
+  totalRows: number;
+  equalRows: number;
+  unequalRows: number;
+  comparedResults: Array<ComparisonTestRunResult>;
+}
+
+type CompleteTestComboRunResult = ComparisonRunResult & TestCombination & {
+  logUrls: Array<string>;
+};
+
 /**
  * Logs the message to the console if DEBUG is true
  */
 const debugLog = (...args: Parameters<typeof console.debug>): void => {
   if (DEBUG) {
-    console.debug(...args);
+    // using console.error to print to STDERR
+    console.error("[DEBUG]:", ...args);
   }
 };
 
@@ -84,7 +121,7 @@ function workflowIdAsLabel(workflowId: string): string {
  */
 function getWorkflowRunKey(combination: TestCombination, runIndex: number) {
   const { workflowId, workflowBrowser, workflowTestPlan } = combination;
-  return `${runIndex}-${workflowId}-${workflowBrowser}-${workflowTestPlan}`;
+  return `${workflowTestPlan}-${workflowId}-${workflowBrowser}-${runIndex}`;
 }
 
 /**
@@ -121,7 +158,7 @@ async function setUpTestComboCallbackListener(
   testCombination: TestCombination,
   runIndex: number
 ) {
-  const promise = new Promise<WorkflowRunResults>((resolvePromise) => {
+  const promise = new Promise<WorkflowRun>((resolvePromise) => {
     const uniqueWorkflowHeaderValue = `${getWorkflowRunKey(
       testCombination,
       runIndex
@@ -141,6 +178,7 @@ async function setUpTestComboCallbackListener(
           const parsedBody: WorkflowCallbackPayload = JSON.parse(body);
 
           if (parsedBody.status === "COMPLETED") {
+            debugLog(`${getWorkflowRunKey(testCombination, runIndex)}: received\n${body}`);
             // if results are included, then we collect them
             // if not, then we assume this is a status update and the test plan is done
             if (parsedBody.responses !== undefined) {
@@ -150,21 +188,27 @@ async function setUpTestComboCallbackListener(
                   parsedBody.testCsvRow ?? parsedBody.presentationNumber ?? -1,
               });
             } else {
+              const runLogsUrl = parsedBody.externalLogsUrl ?? "url not collected";
               debugLog(
                 `Workflow run ${getWorkflowRunKey(
                   testCombination,
                   runIndex
                 )} finished.`
               );
-              resolvePromise(results);
+              resolvePromise({results, runLogsUrl});
               server.removeListener("request", requestListener);
             }
+          } else if (parsedBody.status === "ERROR") {
+            // BELL in case the terminal supports it
+            process.stderr.write('\u0007');
+            console.error("[ERROR]:", `${getWorkflowRunKey(testCombination, runIndex)}: received\n${body}`);
           }
           res.end();
         });
       }
     };
     server.on("request", requestListener);
+    debugLog(`Workflow run ${getWorkflowRunKey(testCombination, runIndex)} listener started.`);
   });
 
   return promise;
@@ -195,9 +239,10 @@ async function dispatchWorkflowForTestCombo(
         )}`,
       },
     });
+    debugLog(`Dispatched ${testComboToString(testCombo)} Run #${runIndex}`)
     return true;
   } catch (e) {
-    console.log(
+    console.error(
       `Run ${runIndex} of ${testComboToString(testCombo)} failed to dispatch.`
     );
     console.error(e);
@@ -213,13 +258,13 @@ async function dispatchWorkflowForTestCombo(
  * @returns a synthetic results array where each element is the mode for its csvRow
  */
 function findMostCommonRunResults(
-  results: ReadonlyArray<WorkflowRunResults>
+  runs: ReadonlyArray<WorkflowRun>
 ): WorkflowRunResults {
   // Group responses by testCsvRow
   const groupedResponses: Map<number, Array<Array<string>>> = new Map();
 
-  results.forEach((workflowResult) => {
-    workflowResult.forEach((row) => {
+  runs.forEach((run) => {
+    run.results.forEach((row) => {
       if (!groupedResponses.has(row.testCsvRow)) {
         groupedResponses.set(row.testCsvRow, []);
       }
@@ -264,56 +309,79 @@ function findMode(arr: Array<Array<string>>): Array<string> {
  * Checks the results in a set of workflow runs for population and equality
  * @returns An object with percentages of populated and equal results
  */
-function checkRunSetResults(results: Array<WorkflowRunResults>) {
+function checkRunSetResults(runs: Array<WorkflowRun>): ComparisonRunResult {
   let totalRows = 0;
   let equalRows = 0;
 
-  const comparisonWorkflowRunResults = findMostCommonRunResults(results);
-
+  const comparisonWorkflowRunResults = findMostCommonRunResults(runs);
+  const comparedResults: Array<ComparisonTestRunResult> = [];
   comparisonWorkflowRunResults.forEach((compTest) => {
-    console.log(`\n### TestId ${compTest.testCsvRow}\n`);
-    console.log(`\n#### Comparison Set\n`);
-    console.log(`\`\`\`\n${compTest.screenreaderResponses}\n\`\`\``);
-    console.log(`\n#### Mismatches\n`);
-    results.forEach((result, i) => {
+    const { testCsvRow, screenreaderResponses: baselineResponses } = compTest;
+    const differences: Array<ComparisonTestRunDifference> = [];
+    runs.forEach((run, i) => {
       totalRows++;
       const resultResponses =
-        result.find((l) => l.testCsvRow === compTest.testCsvRow)
+        run.results.findLast((l) => l.testCsvRow === compTest.testCsvRow)
           ?.screenreaderResponses ?? [];
       const isRowEqual =
         JSON.stringify(resultResponses) ===
-        JSON.stringify(compTest.screenreaderResponses);
+        JSON.stringify(baselineResponses);
       if (isRowEqual) {
         equalRows++;
       } else {
-        console.error(`\n##### Run #${i}\n`);
-        console.error(
-          `\`\`\`diff\n${diff(
-            compTest.screenreaderResponses,
-            resultResponses
-          )}\n\`\`\``
-        );
+        differences.push({ runId: i, responses: resultResponses });
       }
     });
+    comparedResults.push({ testCsvRow, baselineResponses, differences });
   });
 
   const percentUnequal = ((totalRows - equalRows) / totalRows) * 100;
 
-  console.log(`\n#### Stats\n`);
-  console.log(`- Total Rows: ${totalRows}`);
-  console.log(`- Unequal Rows: ${totalRows - equalRows}`);
-  console.log(`- Percentage Unequal: ${percentUnequal.toFixed(2)}%`);
 
   return {
+    comparedResults,
+    totalRows: totalRows,
+    equalRows: equalRows,
+    unequalRows: totalRows - equalRows,
     percentUnequal,
   };
 }
 
+const dispatchAndListen = async(testCombo: TestCombination, runIndex: number): Promise<WorkflowRun> => {
+  const dispatched = await dispatchWorkflowForTestCombo(
+    testCombo,
+    runIndex
+  );
+  if (dispatched) {
+    return await setUpTestComboCallbackListener(
+      testCombo,
+      runIndex
+    );
+  } else {
+    throw new Error('dispatch failed');
+  }
+};
+
+const spawnAndCollectWorkflows = async (testCombo: TestCombination): Promise<CompleteTestComboRunResult> => {
+  const runPromises: Array<Promise<WorkflowRun>> = [];
+  for (let runIndex = 0; runIndex < numRuns; runIndex++) {
+      runPromises.push(limitWorkflows(() => dispatchAndListen(testCombo, runIndex)));
+  }
+  // Wait to get all results from parallel runs of the same test combo
+  const runResults = await Promise.all(runPromises);
+  // Check if all the results are good
+  const runResultStats = checkRunSetResults(runResults);
+  const comboResult: CompleteTestComboRunResult = { ...testCombo, ...runResultStats, logUrls: runResults.map(run => run.runLogsUrl) };
+  debugLog(`${testComboToString(testCombo)} done`, comboResult);
+  allResults.set(testCombo, comboResult);
+  return comboResult;
+}
+
 // Get all the test combos
 const testCombinations = enumerateTestCombinations(testingMatrix, testPlans);
-console.log("Test Plans:\n", testPlans);
-console.log("Testing Matrix:\n", testingMatrix);
-console.log(
+debugLog("Test Plans:\n", testPlans);
+debugLog("Testing Matrix:\n", testingMatrix);
+debugLog(
   `Will dispatch ${
     testCombinations.length
   } test combinations ${numRuns} times, for a total of ${
@@ -323,79 +391,187 @@ console.log(
 
 const server = http.createServer();
 server.listen(port);
-console.log(`Local server started at port ${port}`);
+debugLog(`Local server started at port ${port}`);
 server.setMaxListeners(50);
 
 const ngrokUrl = await ngrok.connect({
   port,
 });
-console.log(`Ngrok tunnel started at ${ngrokUrl}`);
+debugLog(`Ngrok tunnel started at ${ngrokUrl}`);
 
 process.on("beforeExit", (code) => {
   server.close();
   ngrok.kill();
-  console.log("Exiting with code: ", code);
+  console.error("Exiting with code: ", code);
 });
 
 const octokitClient = new Octokit({
   auth: process.env.GITHUB_TOKEN,
 });
 
-// Step through testPlans, waiting for those CI runs to finish before the next begin
-for (const testPlan of testPlans) {
-  console.log(`# Test plan: ${testPlan}\n`);
-  // Filter the list of test combos to only those for this test plan
-  const testCombosForTestPlan = testCombinations.filter(
-    (testCombo) => testCombo.workflowTestPlan === testPlan
-  );
-  // For each test plan, run each test combo in parallel
-  const testCombinationResults = await Promise.all(
-    testCombosForTestPlan.map(async (testCombo: TestCombination) => {
-      const runPromises = [];
-      for (let runIndex = 0; runIndex < numRuns; runIndex++) {
-        const dispatched = await dispatchWorkflowForTestCombo(
-          testCombo,
-          runIndex
-        );
-        if (dispatched) {
-          const listenerPromise = setUpTestComboCallbackListener(
-            testCombo,
-            runIndex
-          );
-          runPromises.push(listenerPromise);
+
+
+const allResults: Map<TestCombination, CompleteTestComboRunResult> = new Map();
+
+// Debug helper: read the needed "allResults" for this run to a json file
+// import { readFile } from "node:fs/promises";
+// const allResults: Map<TestCombination, CompleteTestComboRunResult> = new Map(
+//  JSON.parse(await readFile("stressor-run.json", "utf-8"))
+// );
+
+
+if (allResults.size == 0) {
+  const logStatusInterval = setInterval(() => {
+    // write direct to stderr to not get piped to markdown output.
+    process.stderr.write(`Workflow queue status: ${limitWorkflows.activeCount} active, ${limitWorkflows.pendingCount} pending.\n`);
+  }, 60000);
+
+  // Step through testPlans, waiting for those CI runs to finish before the next begin
+  await Promise.all(testPlans.flatMap(testPlan => {
+    // Filter the list of test combos to only those for this test plan
+    const testCombosForTestPlan = testCombinations.filter(
+      (testCombo) => testCombo.workflowTestPlan === testPlan
+    );
+    // For each test plan, run each test combo in parallel
+    return testCombosForTestPlan.map(spawnAndCollectWorkflows);
+  }));
+
+  clearInterval(logStatusInterval);
+}
+
+const formatResultsForMD = (results: Map<TestCombination, CompleteTestComboRunResult>) => {
+  const keys = [...results.keys()];
+  const values = [...results.values()];
+
+  const scoring = {
+    workflowTestPlan: [...new Set(keys.map(key => key.workflowTestPlan))].sort(),
+    workflowId: [...new Set(keys.map(key => key.workflowId))].sort(),
+    workflowBrowser: [...new Set(keys.map(key => key.workflowBrowser))].sort(),
+  };
+  // generate a distinct ordering score for keys
+  // browser - least significant
+  // workflow - next most
+  // test plan - most significant
+  const score = (key: TestCombination) => (
+    scoring.workflowBrowser.indexOf(key.workflowBrowser) +
+    (scoring.workflowId.indexOf(key.workflowId) * scoring.workflowBrowser.length) +
+    (scoring.workflowTestPlan.indexOf(key.workflowTestPlan) * scoring.workflowId.length * scoring.workflowBrowser.length)
+  )
+  keys.sort((a, b) => score(a) - score(b));
+
+  console.log(`# Stress Test Run - Completed ${new Date().toISOString()}\n`);
+
+  const generalSummary = values.reduce((memo, result) => {
+    return {
+      totalRuns: memo.totalRuns + result.totalRows,
+      totalEqual: memo.totalEqual + result.equalRows,
+    };
+  }, { totalRuns: 0, totalEqual: 0 });
+
+
+  console.log(`* __Total Tests:__ ${generalSummary.totalRuns}`);
+  console.log(`* __Total Unequal %:__ ${((generalSummary.totalRuns - generalSummary.totalEqual) * 100 / generalSummary.totalRuns).toFixed(2)}%`)
+  console.log(`* __Number of runs per combo:__ ${numRuns}`);
+  console.log(`* __Maximum possible "Unequal %" based on number of runs:__ ${((numRuns - 1) * 100 / numRuns).toFixed(2)}%`);
+  console.log(`* __Test Plans:__\n`);
+  for (const plan of testPlans) {
+    console.log(`  * ${plan}`)
+  }
+  console.log(`\n* __Test Matrix:__\n`);
+  for (const entry of testingMatrix) {
+    console.log(`  * ${entry.workflowId}`);
+    for (const browser of entry.browsers) {
+      console.log(`    * ${browser}`);
+    }
+  }
+
+  type GenerateBy = (arg0: CompleteTestComboRunResult) => string;
+  type Formatter = (arg0: string) => string;
+  const generateSummary = (displayTitle: string, by: GenerateBy, formatter: Formatter = identity => identity) => {
+    console.log(`\n## Summary by ${displayTitle}\n`);
+    console.log(`| ${displayTitle} | Total Tests | Unequal Responses | Unequal % |`);
+    console.log("| --- | --- | --- | --- |");
+    const allKeys = new Set(values.map(by));
+    for (const key of allKeys) {
+      const { totalRuns, totalEqual } = values
+        .filter((result) => by(result) === key)
+        .reduce((memo, result) => {
+          return {
+            totalRuns: memo.totalRuns + result.totalRows,
+            totalEqual: memo.totalEqual + result.equalRows,
+          };
+        }, { totalRuns: 0, totalEqual: 0 });
+      const totalUnequal = totalRuns - totalEqual;
+      console.log(`| ${formatter(key)} | ${totalRuns} | ${totalUnequal} | ${(totalUnequal * 100 / totalRuns).toFixed(2)}% |`);
+    }
+  }
+
+  generateSummary('Test Plan', result => result.workflowTestPlan);
+  generateSummary('AT', result => result.workflowId, workflowIdAsLabel);
+  generateSummary('Browser', result => result.workflowBrowser);
+
+  const generateHeaderTextForCombo = (combo: TestCombination):string =>
+    `${combo.workflowTestPlan} ${workflowIdAsLabel(combo.workflowId)} ${combo.workflowBrowser}`;
+
+  const generateHeaderLinkForCombo = (combo: TestCombination):string =>
+    '#' + generateHeaderTextForCombo(combo)
+      .replace(/[^\s\w-]/g, '')
+      .replace(/\s+/g, '-')
+      .toLowerCase();
+
+  console.log(`\n## Summary by All\n`);
+  console.log(`| Test Plan | AT | Browser | Total Tests | Unequal Responses | Unequal % | Heading Link |`);
+  console.log("| --- | --- | --- | --- | --- | --- | --- |");
+  for (const combo of keys) {
+    const comboResults = results.get(combo);
+    // typescript insists this is possibly undefined
+    if (comboResults) {
+      console.log(`| ${comboResults.workflowTestPlan} | ${workflowIdAsLabel(comboResults.workflowId)} | ${comboResults.workflowBrowser} | ${comboResults.totalRows} | ${comboResults.unequalRows} | ${comboResults.percentUnequal.toFixed(2)}% | [#](${generateHeaderLinkForCombo(combo)}) |`)
+    }
+  }
+
+  const formatResponses = (responses: Array<string>, newlineTab: string = '\n    '): string =>
+    responses
+      .map((response, index) => {
+        const responseWrapped = response.split('\n').map(line => wrap(line, {width: 60, newline: newlineTab})).join(newlineTab);
+        return `Response ${index+1}:${newlineTab}${responseWrapped}`;
+      })
+      .join('\n')
+      .replace(/\n(\s*\n)+/g, '\n');
+
+  for (const combo of keys) {
+    const comboResults = results.get(combo);
+    // typescript insists this is possibly undefined
+    if (comboResults) {
+      console.log(`\n## ${generateHeaderTextForCombo(combo)}\n`);
+      console.log(`\n### Run Logs\n`);
+      let logNumber = 0;
+      for (const url of comboResults.logUrls) {
+        console.log(`* [Run #${logNumber++}](${url})`);
+      }
+      for (const comparedResult of comboResults.comparedResults) {
+        console.log(`\n### Test Number: ${comparedResult.testCsvRow}\n`);
+        console.log(`__${combo.workflowTestPlan} ${workflowIdAsLabel(combo.workflowId)} ${combo.workflowBrowser}__`);
+        console.log(`#### Most Common Responses:`);
+        console.log("```");
+        console.log(formatResponses(comparedResult.baselineResponses));
+        console.log("```");
+        for(const diverges of comparedResult.differences) {
+          console.log(`#### Divergent responses from [Run ${diverges.runId}](${comboResults.logUrls[diverges.runId]}):`);
+          console.log("```diff");
+          console.log(diff(formatResponses(comparedResult.baselineResponses), formatResponses(diverges.responses)));
+          console.log("```");
         }
       }
-      debugLog(
-        `Dispatched ${
-          runPromises.length
-        } workflow runs for combination ${testComboToString(testCombo)}.`
-      );
+    }
+    console.log(``)
+  }
+};
 
-      // Wait to get all results from parallel runs of the same test combo
-      const runResults = await Promise.all(runPromises);
+formatResultsForMD(allResults);
 
-      // Check if all the results are good
-      console.log(
-        `## ${workflowIdAsLabel(testCombo.workflowId)} on ${
-          testCombo.workflowBrowser
-        }.`
-      );
-      const runResultStats = checkRunSetResults(runResults);
-
-      return { ...testCombo, ...runResultStats };
-    })
-  );
-
-  console.log(`\n## Summary\n`);
-  console.log(`| Screenreader | Browser | Runs | Unequal Responses (%) |`);
-  console.log(`| --- | --- | --- | --- |`);
-  testCombinationResults.forEach((result) => {
-    console.log(
-      `| ${workflowIdAsLabel(result.workflowId)} | ${
-        result.workflowBrowser
-      } | ${numRuns} | ${result.percentUnequal.toFixed(2)}% |`
-    );
-  });
-}
+// Debug helper: write the needed "allResults" for this run to a json file
+import { writeFile } from "node:fs/promises";
+await writeFile("stressor-run.json", JSON.stringify([...allResults.entries()]), "utf-8");
 
 process.exit(0);
