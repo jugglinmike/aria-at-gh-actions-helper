@@ -11,8 +11,9 @@ It works sequentially through the list of test plans, completing the runs for on
 
 ## Running
 
-Run it with `npm run stress-test`.
+Run it with `npm run --slient stress-test | tee some-output-file.md`.
 
 Running the script can take a while, as it is constrained by GitHub Actions availability and speed.
+Will need the occasional manual job restart on GitHub when the ngrok tunnel sometimes fails (maybe 1 out of 20 runs).
 
 Set an environment variable `DEBUG` to `1` or `true` to get extra logging
