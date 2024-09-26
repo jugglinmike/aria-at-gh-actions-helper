@@ -478,8 +478,19 @@ const formatResultsForMD = (results: Map<TestCombination, CompleteTestComboRunRe
   keys.sort((a, b) => score(a) - score(b));
 
   console.log(`# Stress Test Run - Completed ${new Date().toISOString()}\n`);
+
+  const generalSummary = values.reduce((memo, result) => {
+    return {
+      totalRuns: memo.totalRuns + result.totalRows,
+      totalEqual: memo.totalEqual + result.equalRows,
+    };
+  }, { totalRuns: 0, totalEqual: 0 });
+
+
+  console.log(`* __Total Tests:__ ${generalSummary.totalRuns}`);
+  console.log(`* __Unequal %:__ ${((generalSummary.totalRuns - generalSummary.totalEqual) * 100 / generalSummary.totalRuns).toFixed(2)}%`)
   console.log(`* __Number of runs per combo:__ ${numRuns}`);
-  console.log(`* __Maximum "Unequal %" based on number of runs:__ ${((numRuns - 2) * 100 / numRuns).toFixed(2)}%`);
+  console.log(`* __Maximum possible "Unequal %" based on number of runs:__ ${((numRuns - 1) * 100 / numRuns).toFixed(2)}%`);
   console.log(`* __Test Plans:__\n`);
   for (const plan of testPlans) {
     console.log(`  * ${plan}`)
