@@ -12,8 +12,10 @@
     "@octokit/rest": "^21.0.1",
     "jest-diff": "^29.7.0",
     "ngrok": "^5.0.0-beta.2",
+    "p-limit": "^6.1.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "word-wrap": "^1.2.5"
   },
   "devDependencies": {
     "@octokit/types": "^13.5.0",
