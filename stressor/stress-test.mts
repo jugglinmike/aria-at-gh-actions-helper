@@ -317,10 +317,6 @@ function checkRunSetResults(runs: Array<WorkflowRun>): ComparisonRunResult {
   const comparedResults: Array<ComparisonTestRunResult> = [];
   comparisonWorkflowRunResults.forEach((compTest) => {
     const { testCsvRow, screenreaderResponses: baselineResponses } = compTest;
-    // console.log(`\n### TestId ${testCsvRow}\n`);
-    // console.log(`\n#### Comparison Set\n`);
-    // console.log(`\`\`\`\n${baselineResponses}\n\`\`\``);
-    // console.log(`\n#### Mismatches\n`);
     const differences: Array<ComparisonTestRunDifference> = [];
     runs.forEach((run, i) => {
       totalRows++;
