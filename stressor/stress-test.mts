@@ -478,17 +478,17 @@ const formatResultsForMD = (results: Map<TestCombination, CompleteTestComboRunRe
   keys.sort((a, b) => score(a) - score(b));
 
   console.log(`# Stress Test Run - Completed ${new Date().toISOString()}\n`);
-  console.log(`__Number of runs per combo:__ ${numRuns}`);
-  console.log(`__Maximum "Unequal %" based on number of runs:__ ${((numRuns - 2) * 100 / numRuns).toFixed(2)}%`);
-  console.log(`__Test Plans:__\n`);
+  console.log(`* __Number of runs per combo:__ ${numRuns}`);
+  console.log(`* __Maximum "Unequal %" based on number of runs:__ ${((numRuns - 2) * 100 / numRuns).toFixed(2)}%`);
+  console.log(`* __Test Plans:__\n`);
   for (const plan of testPlans) {
-    console.log(`* ${plan}`)
+    console.log(`  * ${plan}`)
   }
-  console.log(`\n__Test Matrix:__\n`);
+  console.log(`\n* __Test Matrix:__\n`);
   for (const entry of testingMatrix) {
-    console.log(`* ${entry.workflowId}`);
+    console.log(`  * ${entry.workflowId}`);
     for (const browser of entry.browsers) {
-      console.log(`  * ${browser}`);
+      console.log(`    * ${browser}`);
     }
   }
 
