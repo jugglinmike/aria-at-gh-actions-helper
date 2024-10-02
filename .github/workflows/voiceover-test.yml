@@ -45,6 +45,12 @@ on:
           The browser to use for testing, "chrome" or "firefox" or "safari", default "safari"
         required: false
         type: string
+      at_driver_server_version:
+        description: |
+          The version or version range of the macOS AT Driver server to install from npm
+        required: false
+        type: string
+        default: "~0.0.6"
 
 env:
   ARIA_AT_WORK_DIR: ${{ inputs.work_dir || 'tests/alert' }}
@@ -52,6 +58,7 @@ env:
   ARIA_AT_STATUS_URL: ${{ inputs.status_url }}
   ARIA_AT_CALLBACK_HEADER: ${{ inputs.callback_header || 'x-header-param:empty' }}
   BROWSER: ${{ inputs.browser || 'safari' }}
+  AT_DRIVER_SERVER_VERSION: ${{ inputs.at_driver_server_version }}
 
 jobs:
   voiceover-test:
@@ -89,7 +96,7 @@ jobs:
         uses: guidepup/setup-action@0.16.0
 
       - name: Install the macOS AT Driver server package
-        run: npm install @bocoup/macos-at-driver-server@"~0.0.6"
+        run: npm install @bocoup/macos-at-driver-server@"${AT_DRIVER_SERVER_VERSION}"
 
       - name: Configure the system to support the AT Driver server
         env:
