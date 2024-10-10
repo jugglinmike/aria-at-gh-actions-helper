@@ -426,17 +426,20 @@ if (allResults.size == 0) {
     process.stderr.write(`Workflow queue status: ${limitWorkflows.activeCount} active, ${limitWorkflows.pendingCount} pending.\n`);
   }, 60000);
 
-  // Step through testPlans, waiting for those CI runs to finish before the next begin
-  await Promise.all(testPlans.flatMap(testPlan => {
-    // Filter the list of test combos to only those for this test plan
-    const testCombosForTestPlan = testCombinations.filter(
-      (testCombo) => testCombo.workflowTestPlan === testPlan
-    );
-    // For each test plan, run each test combo in parallel
-    return testCombosForTestPlan.map(spawnAndCollectWorkflows);
-  }));
-
-  clearInterval(logStatusInterval);
+  try {
+    // Step through testPlans, waiting for those CI runs to finish before the next begin
+    await Promise.all(testPlans.flatMap(testPlan => {
+      // Filter the list of test combos to only those for this test plan
+      const testCombosForTestPlan = testCombinations.filter(
+        (testCombo) => testCombo.workflowTestPlan === testPlan
+      );
+      // For each test plan, run each test combo in parallel
+      return testCombosForTestPlan.map(spawnAndCollectWorkflows);
+    }));
+  }
+  finally {
+    clearInterval(logStatusInterval);
+  }
 }
 
 const formatResultsForMD = (results: Map<TestCombination, CompleteTestComboRunResult>) => {
