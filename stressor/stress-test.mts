@@ -5,6 +5,7 @@ import { diff } from "jest-diff";
 import test, { run } from "node:test";
 import wrap from "word-wrap";
 import pLimit from "p-limit";
+import isEqual from "lodash.isequal";
 
 const DEBUG = process.env.DEBUG === "true" || process.env.DEBUG === "1";
 const limitWorkflows = pLimit(8);
@@ -323,10 +324,7 @@ function checkRunSetResults(runs: Array<WorkflowRun>): ComparisonRunResult {
       const resultResponses =
         run.results.findLast((l) => l.testCsvRow === compTest.testCsvRow)
           ?.screenreaderResponses ?? [];
-      const isRowEqual =
-        JSON.stringify(resultResponses) ===
-        JSON.stringify(baselineResponses);
-      if (isRowEqual) {
+      if (isEqual(resultResponses, baselineResponses)) {
         equalRows++;
       } else {
         differences.push({ runId: i, responses: resultResponses });
