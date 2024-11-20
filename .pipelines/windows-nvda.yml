@@ -6,27 +6,27 @@ pool:
 
 variables:
   - name: empty
-    value: ''
+    value: ""
   - name: helper_dir
     value: '$(Agent.BuildDirectory)\helper'
 
 parameters:
-- name: aria_at_ref
-  default: master
-- name: browser
-  default: chrome
-- name: nvda_version
-  default: 'latest'
-- name: test_pattern
-  default: '{reference/**,test-*-nvda.*}'
-- name: work_dir
-  default: 'tests/alert'
-- name: callback_header
-  default: $(empty)
-- name: callback_url
-  default: $(empty)
-- name: status_url
-  default: $(empty)
+  - name: aria_at_ref
+    default: master
+  - name: browser
+    default: chrome
+  - name: nvda_version
+    default: "latest"
+  - name: test_pattern
+    default: "{reference/**,test-*-nvda.*}"
+  - name: work_dir
+    default: "tests/alert"
+  - name: callback_header
+    default: $(empty)
+  - name: callback_url
+    default: $(empty)
+  - name: status_url
+    default: $(empty)
 
 resources:
   repositories:
@@ -47,7 +47,6 @@ resources:
       name: w3c/aria-at-automation-harness
       ref: main
 
-
 # Tasks documentation
 # https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/reference/?view=azure-pipelines&viewFallbackFrom=azure-devops
 # Conditionals documentation
@@ -55,166 +54,166 @@ resources:
 # Expressions / Functions
 # https://learn.microsoft.com/en-us/azure/devops/pipelines/process/expressions?view=azure-devops
 steps:
-# Method borrowed from https://stackoverflow.com/a/63959970
-- task: PowerShell@2
-  displayName: Setup env vars
-  env:
-    p_work_dir: ${{ parameters['work_dir'] }}
-    p_test_pattern: ${{ parameters['test_pattern'] }}
-    p_callback_url: ${{ parameters['callback_url'] }}
-    p_status_url: ${{ parameters['status_url'] }}
-    p_callback_header: ${{ parameters['callback_header'] }}
-    p_browser: ${{ parameters['browser'] }}
-    p_nvda_version: ${{ parameters['nvda_version'] }}
-  inputs:
-    targetType: inline
-    script: |
-      Write-Host "Making inputs available as an environment variable."
-      Write-Host "##vso[task.setvariable variable=ARIA_AT_WORK_DIR;]$env:p_work_dir"
-      Write-Host "##vso[task.setvariable variable=ARIA_AT_TEST_PATTERN;]$env:p_test_pattern"
-      Write-Host "##vso[task.setvariable variable=ARIA_AT_CALLBACK_URL;]$env:p_callback_url"
-      Write-Host "##vso[task.setvariable variable=ARIA_AT_STATUS_URL;]$env:p_status_url"
-      Write-Host "##vso[task.setvariable variable=ARIA_AT_CALLBACK_HEADER;]$env:p_callback_header"
-      Write-Host "##vso[task.setvariable variable=BROWSER;]$env:p_browser"
-      Write-Host "##vso[task.setvariable variable=NVDA_VERSION;]$env:p_nvda_version"
+  # Method borrowed from https://stackoverflow.com/a/63959970
+  - task: PowerShell@2
+    displayName: Setup env vars
+    env:
+      p_work_dir: ${{ parameters['work_dir'] }}
+      p_test_pattern: ${{ parameters['test_pattern'] }}
+      p_callback_url: ${{ parameters['callback_url'] }}
+      p_status_url: ${{ parameters['status_url'] }}
+      p_callback_header: ${{ parameters['callback_header'] }}
+      p_browser: ${{ parameters['browser'] }}
+      p_nvda_version: ${{ parameters['nvda_version'] }}
+    inputs:
+      targetType: inline
+      script: |
+        Write-Host "Making inputs available as an environment variable."
+        Write-Host "##vso[task.setvariable variable=ARIA_AT_WORK_DIR;]$env:p_work_dir"
+        Write-Host "##vso[task.setvariable variable=ARIA_AT_TEST_PATTERN;]$env:p_test_pattern"
+        Write-Host "##vso[task.setvariable variable=ARIA_AT_CALLBACK_URL;]$env:p_callback_url"
+        Write-Host "##vso[task.setvariable variable=ARIA_AT_STATUS_URL;]$env:p_status_url"
+        Write-Host "##vso[task.setvariable variable=ARIA_AT_CALLBACK_HEADER;]$env:p_callback_header"
+        Write-Host "##vso[task.setvariable variable=BROWSER;]$env:p_browser"
+        Write-Host "##vso[task.setvariable variable=NVDA_VERSION;]$env:p_nvda_version"
 
-- task: UseNode@1
-  displayName: Install Node
-  inputs:
-    version: '20.x'
-- task: PowerShell@2
-  displayName: Log job state QUEUED
-  condition: ${{ ne(parameters['status_url'], '$(empty)') }}
-  inputs:
-    targetType: inline
-    script: |
-      $headerbits = $env:ARIA_AT_CALLBACK_HEADER -split ":\s*", 2
-      $headers = @{$headerbits[0]=$headerbits[1]; "Content-Type" = "application/json"}
-      $body = @{'status'='QUEUED'; 'externalLogsUrl'="$(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)"} | ConvertTo-JSON
-      Invoke-WebRequest $env:ARIA_AT_STATUS_URL -Headers $headers -Method 'POST' -Body $body
+  - task: UseNode@1
+    displayName: Install Node
+    inputs:
+      version: "20.x"
+  - task: PowerShell@2
+    displayName: Log job state QUEUED
+    condition: ${{ ne(parameters['status_url'], '$(empty)') }}
+    inputs:
+      targetType: inline
+      script: |
+        $headerbits = $env:ARIA_AT_CALLBACK_HEADER -split ":\s*", 2
+        $headers = @{$headerbits[0]=$headerbits[1]; "Content-Type" = "application/json"}
+        $body = @{'status'='QUEUED'; 'externalLogsUrl'="$(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)"} | ConvertTo-JSON
+        Invoke-WebRequest $env:ARIA_AT_STATUS_URL -Headers $headers -Method 'POST' -Body $body
 
-# Checkouts section
-- checkout: self
-  path: helper
-  displayName: Checkout aria-at-gh-actions-helper
-- checkout: aria-at-automation-harness
-  path: helper/aria-at-automation-harness
-  displayName: Checkout aria-at-automation-harness
-- checkout: aria-at
-  fetchDepth: 0
-  path: helper/aria-at
-  displayName: Checkout aria-at
-- task: PowerShell@2
-  displayName: Checkout aria-at to ${{ parameters['aria_at_ref'] }}
-  inputs:
-    targetType: 'inline'
-    workingDirectory: $(helper_dir)/aria-at
-    script: git checkout ${{ parameters['aria_at_ref'] }}
-- checkout: nvda-at-automation
-  path: helper/nvda-at-automation
-  displayName: Checkout nvda-at-automation
-- task: DownloadGitHubRelease@0
-  displayName: Download nvda portable ${{ parameters['nvda_version'] }}
-  # https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/reference/download-github-release-v0?view=azure-pipelines
-  inputs:
-    connection: MyGitHubServiceConnection
-    userRepository: bocoup/aria-at-automation-nvda-builds
-    ${{ if ne(parameters['nvda_version'], 'latest')}}:
-      defaultVersionType: specificTag
-      version: ${{ parameters['nvda_version'] }}
-    downloadPath: $(helper_dir)/nvda-portable
-- task: PowerShell@2
-  displayName: Setup NVDA_PORTABLE_ZIP
-  inputs:
-    targetType: inline
-    script: |
-      $zipFile = Get-ChildItem $(helper_dir)\nvda-portable -File -Filter *.zip | Select-Object -First 1 -ExpandProperty FullName
-      Write-Host "NVDA_PORTABLE_ZIP=$zipFile"
-      Write-Host "##vso[task.setvariable variable=NVDA_PORTABLE_ZIP;]$zipFile"
-- task: PowerShell@2
-  displayName: Install Scream (virtual audio driver)
-  inputs:
-    targetType: 'inline'
-    script: |
-      Start-Service audio*
-      Invoke-WebRequest https://github.com/duncanthrax/scream/releases/download/3.6/Scream3.6.zip -OutFile $(helper_dir)\Scream3.6.zip
-      Expand-Archive -Path $(helper_dir)\Scream3.6.zip -DestinationPath $(helper_dir)\Scream
-      $cert = (Get-AuthenticodeSignature $(helper_dir)\Scream\Install\driver\Scream.sys).SignerCertificate
-      $store = [System.Security.Cryptography.X509Certificates.X509Store]::new("TrustedPublisher", "LocalMachine")
-      $store.Open("ReadWrite")
-      $store.Add($cert)
-      $store.Close()
-      cd $(helper_dir)\Scream\Install\driver
-      $(helper_dir)\Scream\Install\helpers\devcon install Scream.inf *Scream
-- task: PowerShell@2
-  displayName: Compile at-automation driver
-  inputs:
-    targetType: 'inline'
-    workingDirectory: $(helper_dir)\nvda-at-automation\Server
-    script: |
-      go build main\main.go
-- task: Npm@1
-  displayName: 'aria-at: npm install'
-  inputs:
-    workingDir: $(helper_dir)\aria-at
-    command: 'install'
-- task: Npm@1
-  displayName: 'aria-at: npm build'
-  inputs:
-    workingDir: $(helper_dir)\aria-at
-    command: 'custom'
-    customCommand: 'run build'
-- task: Npm@1
-  displayName: 'aria-at-automation-harness: npm install'
-  inputs:
-    workingDir: $(helper_dir)\aria-at-automation-harness
-    command: 'install'
-- task: PowerShell@2
-  displayName: Log job state RUNNING
-  # weird syntaxing because parameters only exists in ${{ }} land, but succeeded() doesn't exist there
-  condition: and(succeeded(), ${{ ne(parameters['status_url'], '$(empty)') }} )
-  inputs:
-    targetType: inline
-    script: |
-      $headerbits = $env:ARIA_AT_CALLBACK_HEADER -split ":\s*", 2
-      $headers = @{$headerbits[0]=$headerbits[1]; "Content-Type" = "application/json"}
-      $body = @{'status'='RUNNING'; 'externalLogsUrl'="$(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)"} | ConvertTo-JSON
-      Invoke-WebRequest $env:ARIA_AT_STATUS_URL -Headers $headers -Method 'POST' -Body $body
+  # Checkouts section
+  - checkout: self
+    path: helper
+    displayName: Checkout aria-at-gh-actions-helper
+  - checkout: aria-at-automation-harness
+    path: helper/aria-at-automation-harness
+    displayName: Checkout aria-at-automation-harness
+  - checkout: aria-at
+    fetchDepth: 0
+    path: helper/aria-at
+    displayName: Checkout aria-at
+  - task: PowerShell@2
+    displayName: Checkout aria-at to ${{ parameters['aria_at_ref'] }}
+    inputs:
+      targetType: "inline"
+      workingDirectory: $(helper_dir)/aria-at
+      script: git checkout ${{ parameters['aria_at_ref'] }}
+  - checkout: nvda-at-automation
+    path: helper/nvda-at-automation
+    displayName: Checkout nvda-at-automation
+  - task: DownloadGitHubRelease@0
+    displayName: Download nvda portable ${{ parameters['nvda_version'] }}
+    # https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/reference/download-github-release-v0?view=azure-pipelines
+    inputs:
+      connection: MyGitHubServiceConnection
+      userRepository: bocoup/aria-at-automation-nvda-builds
+      ${{ if ne(parameters['nvda_version'], 'latest')}}:
+        defaultVersionType: specificTag
+        version: ${{ parameters['nvda_version'] }}
+      downloadPath: $(helper_dir)/nvda-portable
+  - task: PowerShell@2
+    displayName: Setup NVDA_PORTABLE_ZIP
+    inputs:
+      targetType: inline
+      script: |
+        $zipFile = Get-ChildItem $(helper_dir)\nvda-portable -File -Filter *.zip | Select-Object -First 1 -ExpandProperty FullName
+        Write-Host "NVDA_PORTABLE_ZIP=$zipFile"
+        Write-Host "##vso[task.setvariable variable=NVDA_PORTABLE_ZIP;]$zipFile"
+  - task: PowerShell@2
+    displayName: Install Scream (virtual audio driver)
+    inputs:
+      targetType: "inline"
+      script: |
+        Start-Service audio*
+        Invoke-WebRequest https://github.com/duncanthrax/scream/releases/download/3.6/Scream3.6.zip -OutFile $(helper_dir)\Scream3.6.zip
+        Expand-Archive -Path $(helper_dir)\Scream3.6.zip -DestinationPath $(helper_dir)\Scream
+        $cert = (Get-AuthenticodeSignature $(helper_dir)\Scream\Install\driver\Scream.sys).SignerCertificate
+        $store = [System.Security.Cryptography.X509Certificates.X509Store]::new("TrustedPublisher", "LocalMachine")
+        $store.Open("ReadWrite")
+        $store.Add($cert)
+        $store.Close()
+        cd $(helper_dir)\Scream\Install\driver
+        $(helper_dir)\Scream\Install\helpers\devcon install Scream.inf *Scream
+  - task: PowerShell@2
+    displayName: Compile at-automation driver
+    inputs:
+      targetType: "inline"
+      workingDirectory: $(helper_dir)\nvda-at-automation\Server
+      script: |
+        go build main\main.go
+  - task: Npm@1
+    displayName: "aria-at: npm install"
+    inputs:
+      workingDir: $(helper_dir)\aria-at
+      command: "install"
+  - task: Npm@1
+    displayName: "aria-at: npm build"
+    inputs:
+      workingDir: $(helper_dir)\aria-at
+      command: "custom"
+      customCommand: "run build"
+  - task: Npm@1
+    displayName: "aria-at-automation-harness: npm install"
+    inputs:
+      workingDir: $(helper_dir)\aria-at-automation-harness
+      command: "install"
+  - task: PowerShell@2
+    displayName: Log job state RUNNING
+    # weird syntaxing because parameters only exists in ${{ }} land, but succeeded() doesn't exist there
+    condition: and(succeeded(), ${{ ne(parameters['status_url'], '$(empty)') }} )
+    inputs:
+      targetType: inline
+      script: |
+        $headerbits = $env:ARIA_AT_CALLBACK_HEADER -split ":\s*", 2
+        $headers = @{$headerbits[0]=$headerbits[1]; "Content-Type" = "application/json"}
+        $body = @{'status'='RUNNING'; 'externalLogsUrl'="$(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)"} | ConvertTo-JSON
+        Invoke-WebRequest $env:ARIA_AT_STATUS_URL -Headers $headers -Method 'POST' -Body $body
 
-- task: PowerShell@2
-  displayName: Run harness
-  inputs:
-    targetType: inline
-    workingDirectory: $(helper_dir)
-    script: |
-      & .\run-tester.ps1
+  - task: PowerShell@2
+    displayName: Run harness
+    inputs:
+      targetType: inline
+      workingDirectory: $(helper_dir)
+      script: |
+        & .\run-tester.ps1
 
-- task: PowerShell@2
-  displayName: Log job state ERROR
-  # weird syntaxing because parameters only exists in ${{ }} land, but failed() doesn't exist there
-  condition: and(failed(), ${{ ne(parameters['status_url'], '$(empty)') }} )
-  inputs:
-    targetType: inline
-    script: |
-      $headerbits = $env:ARIA_AT_CALLBACK_HEADER -split ":\s*", 2
-      $headers = @{$headerbits[0]=$headerbits[1]; "Content-Type" = "application/json"}
-      $body = @{'status'='ERROR'; 'externalLogsUrl'="$(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)"} | ConvertTo-JSON
-      Invoke-WebRequest $env:ARIA_AT_STATUS_URL -Headers $headers -Method 'POST' -Body $body
-- task: PowerShell@2
-  displayName: Log job state COMPLETED
-  # weird syntaxing because parameters only exists in ${{ }} land, but succeeded() doesn't exist there
-  condition: and(succeeded(), ${{ ne(parameters['status_url'], '$(empty)') }} )
-  inputs:
-    targetType: inline
-    script: |
-      $headerbits = $env:ARIA_AT_CALLBACK_HEADER -split ":\s*", 2
-      $headers = @{$headerbits[0]=$headerbits[1]; "Content-Type" = "application/json"}
-      $body = @{'status'='COMPLETED'; 'externalLogsUrl'="$(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)"} | ConvertTo-JSON
-      Invoke-WebRequest $env:ARIA_AT_STATUS_URL -Headers $headers -Method 'POST' -Body $body
-- task: PublishPipelineArtifact@1
-  displayName: Publish logs
-  # always run
-  condition: or(failed(), succeeded())
-  inputs:
-    targetPath: $(helper_dir)
-    artifact: logs
+  - task: PowerShell@2
+    displayName: Log job state ERROR
+    # weird syntaxing because parameters only exists in ${{ }} land, but failed() doesn't exist there
+    condition: and(failed(), ${{ ne(parameters['status_url'], '$(empty)') }} )
+    inputs:
+      targetType: inline
+      script: |
+        $headerbits = $env:ARIA_AT_CALLBACK_HEADER -split ":\s*", 2
+        $headers = @{$headerbits[0]=$headerbits[1]; "Content-Type" = "application/json"}
+        $body = @{'status'='ERROR'; 'externalLogsUrl'="$(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)"} | ConvertTo-JSON
+        Invoke-WebRequest $env:ARIA_AT_STATUS_URL -Headers $headers -Method 'POST' -Body $body
+  - task: PowerShell@2
+    displayName: Log job state COMPLETED
+    # weird syntaxing because parameters only exists in ${{ }} land, but succeeded() doesn't exist there
+    condition: and(succeeded(), ${{ ne(parameters['status_url'], '$(empty)') }} )
+    inputs:
+      targetType: inline
+      script: |
+        $headerbits = $env:ARIA_AT_CALLBACK_HEADER -split ":\s*", 2
+        $headers = @{$headerbits[0]=$headerbits[1]; "Content-Type" = "application/json"}
+        $body = @{'status'='COMPLETED'; 'externalLogsUrl'="$(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)"} | ConvertTo-JSON
+        Invoke-WebRequest $env:ARIA_AT_STATUS_URL -Headers $headers -Method 'POST' -Body $body
+  - task: PublishPipelineArtifact@1
+    displayName: Publish logs
+    # always run
+    condition: or(failed(), succeeded())
+    inputs:
+      targetPath: $(helper_dir)
+      artifact: logs
