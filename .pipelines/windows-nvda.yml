@@ -82,10 +82,6 @@ steps:
   displayName: Install Node
   inputs:
     version: '20.x'
-# - task: GoTool@0
-#   displayName: Install Go
-#   inputs:
-#     version: '1.10'
 - task: PowerShell@2
   displayName: Log job state QUEUED
   condition: ${{ ne(parameters['status_url'], '$(empty)') }}
