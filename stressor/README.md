@@ -37,3 +37,10 @@ It can be challenging to run this script (which can take hours to finish) from a
 #### A note on cost
 
 The free plan on GitHub comes with a decent amount codespace usage, so it'll likely be free to use it to run this script. If you use codespaces for other personal projects and are over your free allotment it could cost up to a few dollars to run this script. See [codespaces billing](https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-codespaces/about-billing-for-github-codespaces#monthly-included-storage-and-core-hours-for-personal-accounts) for more info.
+
+## Cancelling
+
+If you make a mistake on a run of this script and abort it, the jobs on GitHub Actions that have already started or been queued will continue. You can use the cancel script to cancel all unfinished jobs in a repo.
+
+1. Edit [cancel-all-workflows.mts](./cancel-all-workflows.mts) to put the correct owner and repo name in the constants at the top of the script.
+2. Run `npm run cancel-jobs`
