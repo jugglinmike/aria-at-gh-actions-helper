@@ -15,7 +15,7 @@ It works sequentially through the list of test plans, completing the runs for on
 
 ## Running
 
-1. It is prefered for you to run the stress test against your own personal "non-fork" of this repo (create a personal repo and push to it instead of using "fork" so it isn't part of the "network") to limit the number of action runs against the main branch.
+1. It is prefered for you to run the stress test against your own personal "non-fork" of this repo (create a personal repo and push to it instead of using "fork" so it isn't part of the "network") to limit the number of action runs against the main branch. You generally don't want to run these tests in the copy of this repo that lives in the bocoup GitHub organization.
 2. Update the stress-test.mts file `owner`, `repo`, and `defaultBranch` definitions near the top, as well as setting up the tests / matrix you want to test.
 3. Run it with `npm run --silent stress-test | tee some-output-file.md`.
 4. Running the script can take a while, as it is constrained by GitHub Actions availability and speed.
@@ -38,9 +38,13 @@ It can be challenging to run this script (which can take hours to finish) from a
 
 The free plan on GitHub comes with a decent amount codespace usage, so it'll likely be free to use it to run this script. If you use codespaces for other personal projects and are over your free allotment it could cost up to a few dollars to run this script. See [codespaces billing](https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-codespaces/about-billing-for-github-codespaces#monthly-included-storage-and-core-hours-for-personal-accounts) for more info.
 
+#### A note on codespace timeouts
+
+The default time a codespace stays alive after inactivity is 30 min. If you find the codespace has stopped while you're busy doing something else, you may want to [increase that timeout length](https://docs.github.com/en/codespaces/setting-your-user-preferences/setting-your-timeout-period-for-github-codespaces).
+
 ## Cancelling
 
 If you make a mistake on a run of this script and abort it, the jobs on GitHub Actions that have already started or been queued will continue. You can use the cancel script to cancel all unfinished jobs in a repo.
 
-1. Edit [cancel-all-workflows.mts](./cancel-all-workflows.mts) to put the correct owner and repo name in the constants at the top of the script.
+1. Edit [cancel-all-workflows.mts](./cancel-all-workflows.mts) to ensure the desired `owner`, `repo`, are set in the constants at the top of the script.
 2. Run `npm run cancel-jobs`
