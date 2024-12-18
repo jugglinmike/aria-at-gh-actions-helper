@@ -25,7 +25,7 @@ Set an environment variable `DEBUG` to `1` or `true` to get extra logging
 
 ### Running from a GitHub Codespace
 
-It can be challenging to run this script (which can take hours to finish) from a laptop with intermittent internet access or batter saving settings. Here's how you can run it from a GitHub Codespace in the fork of this repo you create.
+It can be challenging to run this script (which can take hours to finish) from a laptop with intermittent internet access or battery saving settings. Here's how you can run it from a GitHub Codespace in the fork of this repo you create.
 
 1. Create a codespace on `main` using the [config file in this folder](./devcontainer/devcontainer.json). (If you need to test changes on a different branch, be sure to create your codespace on that branch.) [See how.](https://docs.github.com/en/codespaces/developing-in-a-codespace/creating-a-codespace-for-a-repository?tool=webui)
 2. Open your codespace or connect to it from your machine. [See how.](https://docs.github.com/en/codespaces/developing-in-a-codespace/opening-an-existing-codespace)
