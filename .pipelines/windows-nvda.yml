@@ -13,21 +13,40 @@ variables:
 
 parameters:
   - name: aria_at_ref
+    type: string
     default: master
+    displayName: ARIA-AT Reference Branch
   - name: browser
+    type: string
     default: chrome
+    displayName: Browser to Test
+    values:
+      - chrome
+      - firefox
   - name: nvda_version
+    type: string
     default: "latest"
+    displayName: NVDA Version
   - name: test_pattern
+    type: string
     default: "{reference/**,test-*-nvda.*}"
+    displayName: Test Pattern
   - name: work_dir
+    type: string
     default: "tests/alert"
+    displayName: Working Directory
   - name: callback_header
+    type: string
     default: $(empty)
+    displayName: Callback Header
   - name: callback_url
+    type: string
     default: $(empty)
+    displayName: Callback URL
   - name: status_url
+    type: string
     default: $(empty)
+    displayName: Status URL
 
 resources:
   repositories:
