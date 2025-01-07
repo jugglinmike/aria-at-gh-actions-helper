@@ -15,17 +15,17 @@ parameters:
   - name: aria_at_ref
     type: string
     default: master
-    displayName: ARIA-AT Reference Branch
+    displayName: ARIA-AT Repo Git Ref
   - name: browser
     type: string
     default: chrome
-    displayName: Browser to Test
+    displayName: Browser to Test with
     values:
       - chrome
       - firefox
   - name: nvda_version
     type: string
-    default: "latest"
+    default: latest
     displayName: NVDA Version
   - name: test_pattern
     type: string
@@ -33,7 +33,7 @@ parameters:
     displayName: Test Pattern
   - name: work_dir
     type: string
-    default: "tests/alert"
+    default: tests/alert
     displayName: Working Directory
   - name: callback_header
     type: string
