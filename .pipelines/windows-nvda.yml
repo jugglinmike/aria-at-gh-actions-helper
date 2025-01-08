@@ -102,6 +102,13 @@ steps:
     inputs:
       version: "20.x"
   - task: PowerShell@2
+    displayName: Debug Parameters
+    inputs:
+      targetType: inline
+      script: |
+        Write-Host "status_url parameter value: ${{ parameters['status_url'] }}"
+        Write-Host "Pipeline status: $(Agent.JobStatus)"
+  - task: PowerShell@2
     displayName: Log job state QUEUED
     condition: ${{ ne(parameters['status_url'], 'NONE') }}
     inputs:
