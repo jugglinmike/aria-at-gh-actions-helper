@@ -6,8 +6,6 @@ pool:
   vmImage: windows-latest
 
 variables:
-  - name: empty
-    value: ""
   - name: helper_dir
     value: '$(Agent.BuildDirectory)\helper'
 
@@ -37,15 +35,15 @@ parameters:
     displayName: Working Directory
   - name: callback_header
     type: string
-    default: $(empty)
+    default: ""
     displayName: Callback Header
   - name: callback_url
     type: string
-    default: $(empty)
+    default: ""
     displayName: Callback URL
   - name: status_url
     type: string
-    default: $(empty)
+    default: ""
     displayName: Status URL
 
 resources:
@@ -103,7 +101,7 @@ steps:
       version: "20.x"
   - task: PowerShell@2
     displayName: Log job state QUEUED
-    condition: ${{ ne(parameters['status_url'], '$(empty)') }}
+    condition: ${{ ne(parameters['status_url'], '') }}
     inputs:
       targetType: inline
       script: |
@@ -191,7 +189,7 @@ steps:
   - task: PowerShell@2
     displayName: Log job state RUNNING
     # weird syntaxing because parameters only exists in ${{ }} land, but succeeded() doesn't exist there
-    condition: and(succeeded(), ${{ ne(parameters['status_url'], '$(empty)') }} )
+    condition: and(succeeded(), ${{ ne(parameters['status_url'], '') }} )
     inputs:
       targetType: inline
       script: |
@@ -211,7 +209,7 @@ steps:
   - task: PowerShell@2
     displayName: Log job state ERROR
     # weird syntaxing because parameters only exists in ${{ }} land, but failed() doesn't exist there
-    condition: and(failed(), ${{ ne(parameters['status_url'], '$(empty)') }} )
+    condition: and(failed(), ${{ ne(parameters['status_url'], '') }} )
     inputs:
       targetType: inline
       script: |
@@ -222,7 +220,7 @@ steps:
   - task: PowerShell@2
     displayName: Log job state COMPLETED
     # weird syntaxing because parameters only exists in ${{ }} land, but succeeded() doesn't exist there
-    condition: and(succeeded(), ${{ ne(parameters['status_url'], '$(empty)') }} )
+    condition: and(succeeded(), ${{ ne(parameters['status_url'], '') }} )
     inputs:
       targetType: inline
       script: |
