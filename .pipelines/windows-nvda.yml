@@ -35,15 +35,15 @@ parameters:
     displayName: Working Directory
   - name: callback_header
     type: string
-    required: false
+    default: ''
     displayName: Callback Header
   - name: callback_url
     type: string
-    required: false
+    default: ''
     displayName: Callback URL
   - name: status_url
     type: string
-    required: false
+    default: ''
     displayName: Status URL
 
 resources:
