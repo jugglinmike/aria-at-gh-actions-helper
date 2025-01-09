@@ -6,9 +6,27 @@ import test, { run } from "node:test";
 import wrap from "word-wrap";
 import pLimit from "p-limit";
 import isEqual from "lodash.isequal";
+import { readFile, writeFile } from "node:fs/promises";
+import { Command, InvalidArgumentError } from "commander";
 
 const DEBUG = process.env.DEBUG === "true" || process.env.DEBUG === "1";
 const limitWorkflows = pLimit(8);
+function parseIntOption(value, dummyPrevious) {
+  const parsedValue = parseInt(value, 10);
+  if (isNaN(parsedValue)) {
+    throw new InvalidArgumentError("Not a number.");
+  }
+  return parsedValue;
+}
+const program = new Command()
+  .requiredOption("-o, --owner <string>", "repository owner")
+  .requiredOption("-r, --repo <string>", "repository name")
+  .option("-b, --branch <string>", "Git branch", "main")
+  .option("-f, --results-from-file", "Load results from local 'allResults.json' file")
+  .option("-n, --num-runs <int>", "Number of times to run each test plan", parseIntOption, 5)
+  .option("-p, --port <int>", "Port number on which to bind the local results-accepting server", parseIntOption, 8888);
+program.parse();
+const options = program.opts();
 
 const testPlans = [
   "tests/menu-button-actions-active-descendant",
@@ -22,9 +40,6 @@ const testPlans = [
   "tests/radiogroup-aria-activedescendant",
   "tests/toggle-button",
 ];
-const owner = "bocoup",
-  repo = "aria-at-gh-actions-helper";
-const defaultBranch = "main";
 
 // ordered this way because voiceover usually finishes quicker, and when you only
 // have 3 jobs left it matters... :)
@@ -39,9 +54,7 @@ const testingMatrix = [
   },
 ];
 
-const port = 8888;
 const workflowHeaderKey = "x-workflow-key";
-const numRuns = 5;
 
 interface WorkflowCallbackPayload {
   status: string;
@@ -226,10 +239,10 @@ async function dispatchWorkflowForTestCombo(
   const { workflowId, workflowTestPlan } = testCombo;
   try {
     await octokitClient.actions.createWorkflowDispatch({
-      owner,
-      repo,
+      owner: options.owner,
+      repo: options.repo,
       workflow_id: workflowId,
-      ref: defaultBranch,
+      ref: options.branch,
       inputs: {
         work_dir: workflowTestPlan,
         callback_url: ngrokUrl,
@@ -362,7 +375,7 @@ const dispatchAndListen = async(testCombo: TestCombination, runIndex: number): P
 
 const spawnAndCollectWorkflows = async (testCombo: TestCombination): Promise<CompleteTestComboRunResult> => {
   const runPromises: Array<Promise<WorkflowRun>> = [];
-  for (let runIndex = 0; runIndex < numRuns; runIndex++) {
+  for (let runIndex = 0; runIndex < options.numRuns; runIndex++) {
       runPromises.push(limitWorkflows(() => dispatchAndListen(testCombo, runIndex)));
   }
   // Wait to get all results from parallel runs of the same test combo
@@ -382,18 +395,18 @@ debugLog("Testing Matrix:\n", testingMatrix);
 debugLog(
   `Will dispatch ${
     testCombinations.length
-  } test combinations ${numRuns} times, for a total of ${
-    testCombinations.length * numRuns
+  } test combinations ${options.numRuns} times, for a total of ${
+    testCombinations.length * options.numRuns
   } workflow runs.`
 );
 
 const server = http.createServer();
-server.listen(port);
-debugLog(`Local server started at port ${port}`);
+server.listen(options.port);
+debugLog(`Local server started at port ${options.port}`);
 server.setMaxListeners(50);
 
 const ngrokUrl = await ngrok.connect({
-  port,
+  port: options.port,
 });
 debugLog(`Ngrok tunnel started at ${ngrokUrl}`);
 
@@ -411,14 +424,12 @@ const octokitClient = new Octokit({
 
 const allResults: Map<TestCombination, CompleteTestComboRunResult> = new Map();
 
-// Debug helper: read the needed "allResults" for this run to a json file
-// import { readFile } from "node:fs/promises";
-// const allResults: Map<TestCombination, CompleteTestComboRunResult> = new Map(
-//  JSON.parse(await readFile("stressor-run.json", "utf-8"))
-// );
-
-
-if (allResults.size == 0) {
+if (options.resultsFromFile) {
+  const data = JSON.parse(await readFile("stressor-run.json", "utf-8"));
+  for (const [key, value] of data) {
+    allResults.set(key, value);
+  }
+} else {
   const logStatusInterval = setInterval(() => {
     // write direct to stderr to not get piped to markdown output.
     process.stderr.write(`Workflow queue status: ${limitWorkflows.activeCount} active, ${limitWorkflows.pendingCount} pending.\n`);
@@ -472,8 +483,8 @@ const formatResultsForMD = (results: Map<TestCombination, CompleteTestComboRunRe
 
   console.log(`* __Total Tests:__ ${generalSummary.totalRuns}`);
   console.log(`* __Total Unequal %:__ ${((generalSummary.totalRuns - generalSummary.totalEqual) * 100 / generalSummary.totalRuns).toFixed(2)}%`)
-  console.log(`* __Number of runs per combo:__ ${numRuns}`);
-  console.log(`* __Maximum possible "Unequal %" based on number of runs:__ ${((numRuns - 1) * 100 / numRuns).toFixed(2)}%`);
+  console.log(`* __Number of runs per combo:__ ${options.numRuns}`);
+  console.log(`* __Maximum possible "Unequal %" based on number of runs:__ ${((options.numRuns - 1) * 100 / options.numRuns).toFixed(2)}%`);
   console.log(`* __Test Plans:__\n`);
   for (const plan of testPlans) {
     console.log(`  * ${plan}`)
@@ -572,7 +583,6 @@ const formatResultsForMD = (results: Map<TestCombination, CompleteTestComboRunRe
 formatResultsForMD(allResults);
 
 // Debug helper: write the needed "allResults" for this run to a json file
-import { writeFile } from "node:fs/promises";
 await writeFile("stressor-run.json", JSON.stringify([...allResults.entries()]), "utf-8");
 
 process.exit(0);

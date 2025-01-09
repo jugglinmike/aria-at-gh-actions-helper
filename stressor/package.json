@@ -4,7 +4,6 @@
   "description": "Stress test Test Plans via CI workflows",
   "main": "stress-test.mts",
   "scripts": {
-    "stress-test": "node --loader ts-node/esm stress-test.mts",
     "cancel-runs": "node --loader ts-node/esm cancel-all-workflows.mts"
   },
   "author": "",
@@ -12,6 +11,7 @@
   "dependencies": {
     "@octokit/rest": "^21.0.1",
     "@types/lodash.isequal": "^4.5.8",
+    "commander": "^13.0.0",
     "jest-diff": "^29.7.0",
     "lodash.isequal": "^4.5.0",
     "ngrok": "^5.0.0-beta.2",
