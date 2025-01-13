@@ -90,19 +90,19 @@ steps:
       script: |
         Write-Host "Making inputs available as an environment variable."
         Write-Host "##vso[task.setvariable variable=ARIA_AT_WORK_DIR;]$env:p_work_dir"
-        Write-Host "ARIA_AT_WORK_DIR: $env:ARIA_AT_WORK_DIR"
+        Write-Host "ARIA_AT_WORK_DIR: $env:ARIA_AT_WORK_DIR ($env:p_work_dir)"
         Write-Host "##vso[task.setvariable variable=ARIA_AT_TEST_PATTERN;]$env:p_test_pattern"
-        Write-Host "ARIA_AT_TEST_PATTERN: $env:ARIA_AT_TEST_PATTERN"
+        Write-Host "ARIA_AT_TEST_PATTERN: $env:ARIA_AT_TEST_PATTERN ($env:p_test_pattern)"
         Write-Host "##vso[task.setvariable variable=ARIA_AT_CALLBACK_URL;]$env:p_callback_url"
-        Write-Host "ARIA_AT_CALLBACK_URL: $env:ARIA_AT_CALLBACK_URL"
+        Write-Host "ARIA_AT_CALLBACK_URL: $env:ARIA_AT_CALLBACK_URL ($env:p_callback_url)"
         Write-Host "##vso[task.setvariable variable=ARIA_AT_STATUS_URL;]$env:p_status_url"
-        Write-Host "ARIA_AT_STATUS_URL: $env:ARIA_AT_STATUS_URL"
+        Write-Host "ARIA_AT_STATUS_URL: $env:ARIA_AT_STATUS_URL ($env:p_status_url)"
         Write-Host "##vso[task.setvariable variable=ARIA_AT_CALLBACK_HEADER;]$env:p_callback_header"
-        Write-Host "ARIA_AT_CALLBACK_HEADER: $env:ARIA_AT_CALLBACK_HEADER"
+        Write-Host "ARIA_AT_CALLBACK_HEADER: $env:ARIA_AT_CALLBACK_HEADER ($env:p_callback_header)"
         Write-Host "##vso[task.setvariable variable=BROWSER;]$env:p_browser"
-        Write-Host "BROWSER: $env:BROWSER"
+        Write-Host "BROWSER: $env:BROWSER ($env:p_browser)"
         Write-Host "##vso[task.setvariable variable=NVDA_VERSION;]$env:p_nvda_version"
-        Write-Host "NVDA_VERSION: $env:NVDA_VERSION"
+        Write-Host "NVDA_VERSION: $env:NVDA_VERSION ($env:p_nvda_version)"
 
   - task: UseNode@1
     displayName: Install Node
@@ -114,6 +114,7 @@ steps:
       targetType: inline
       script: |
         Write-Host "status_url parameter value: ${{ parameters['status_url'] }}"
+        Write-Host "status_url variable value: ${{ $env:status_url }}"
         Write-Host "Pipeline status: $(Agent.JobStatus)"
   - task: PowerShell@2
     displayName: Log job state QUEUED
