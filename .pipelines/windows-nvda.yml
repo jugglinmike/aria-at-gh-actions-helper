@@ -10,6 +10,8 @@ variables:
     value: ""
   - name: helper_dir
     value: '$(Agent.BuildDirectory)\helper'
+  - name: callback_url
+    value: ''
 
 parameters:
   - name: aria_at_ref
@@ -39,10 +41,6 @@ parameters:
     type: string
     default: $(empty)
     displayName: Callback Header
-  - name: callback_url
-    type: string
-    default: $(empty)
-    displayName: Callback URL
   - name: status_url
     type: string
     default: NONE
@@ -80,7 +78,7 @@ steps:
     env:
       p_work_dir: ${{ parameters['work_dir'] }}
       p_test_pattern: ${{ parameters['test_pattern'] }}
-      p_callback_url: ${{ parameters['callback_url'] }}
+      p_callback_url: ${env:callback_url}
       p_status_url: ${{ parameters['status_url'] }}
       p_callback_header: ${{ parameters['callback_header'] }}
       p_browser: ${{ parameters['browser'] }}
