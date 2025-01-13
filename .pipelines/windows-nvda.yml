@@ -114,7 +114,7 @@ steps:
       targetType: inline
       script: |
         Write-Host "status_url parameter value: ${{ parameters['status_url'] }}"
-        Write-Host "status_url variable value: ${{ $env:status_url }}"
+        Write-Host "status_url variable value: $env:status_url"
         Write-Host "Pipeline status: $(Agent.JobStatus)"
   - task: PowerShell@2
     displayName: Log job state QUEUED
