@@ -392,9 +392,8 @@ server.listen(port);
 debugLog(`Local server started at port ${port}`);
 server.setMaxListeners(50);
 
-const ngrokUrl = await ngrok.connect({
-  port,
-});
+await ngrok.authtoken(process.env.NGROK_AUTH_TOKEN || '');
+const ngrokUrl = await ngrok.connect(port);
 debugLog(`Ngrok tunnel started at ${ngrokUrl}`);
 
 process.on("beforeExit", (code) => {
