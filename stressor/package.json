@@ -24,7 +24,8 @@
     "@octokit/types": "^13.5.0",
     "@tsconfig/node20": "^20.1.4",
     "@types/node": "^20.14.12",
-    "tslib": "^2.6.3"
+    "tslib": "^2.6.3",
+    "tsx": "^4.19.2"
   },
   "engines": {
     "node": ">=20"

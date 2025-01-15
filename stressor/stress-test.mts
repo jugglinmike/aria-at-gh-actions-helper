@@ -11,7 +11,7 @@ import { Command, InvalidArgumentError } from "commander";
 
 const DEBUG = process.env.DEBUG === "true" || process.env.DEBUG === "1";
 const limitWorkflows = pLimit(8);
-function parseIntOption(value, dummyPrevious) {
+function parseIntOption(value: string, dummyPrevious: number) {
   const parsedValue = parseInt(value, 10);
   if (isNaN(parsedValue)) {
     throw new InvalidArgumentError("Not a number.");

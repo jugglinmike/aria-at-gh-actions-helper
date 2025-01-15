@@ -18,7 +18,7 @@ It works sequentially through the list of test plans, completing the runs for on
 1. It is prefered for you to run the stress test against your own personal "non-fork" of this repo (create a personal repo and push to it instead of using "fork" so it isn't part of the "network") to limit the number of action runs against the main branch.
 2. Run it with the following command (replacing `myUser` and `myRepo` with the owner and name of your repository):
 
-      $ npx tsx stress-test.mts --owner myUser --repo myRepo
+      $ npx tsx stress-test.mts --owner myUser --repo myRepo | tee some-output-file.md
 3. Running the script can take a while, as it is constrained by GitHub Actions availability and speed.
 Will need the occasional manual job restart on GitHub when the ngrok tunnel sometimes fails (maybe 1 out of 20 runs).
 
