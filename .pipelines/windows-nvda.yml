@@ -56,7 +56,7 @@ steps:
       version: "20.x"
   - task: PowerShell@2
     displayName: Log job state QUEUED
-    condition: ne(variables.STATUS_URL, '')
+    condition: ne(variables.status_url, '')
     inputs:
       targetType: inline
       script: |
