@@ -92,7 +92,7 @@ steps:
       connection: MyGitHubServiceConnection
       userRepository: bocoup/aria-at-automation-nvda-builds
       defaultVersionType: $[if(ne(variables['nvda_version'], 'latest'), 'specificTag', 'latestByTag')]
-      version: $(nvda_version)
+      version: $[if(ne(variables['nvda_version'], 'latest'), variables['nvda_version'], '')]
       downloadPath: $(helper_dir)/nvda-portable
   - task: PowerShell@2
     displayName: Setup NVDA_PORTABLE_ZIP
