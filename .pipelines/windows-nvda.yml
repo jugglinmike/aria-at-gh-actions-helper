@@ -91,7 +91,7 @@ steps:
     inputs:
       connection: MyGitHubServiceConnection
       userRepository: bocoup/aria-at-automation-nvda-builds
-      defaultVersionType: ${{ if ne(variables.nvda_version, 'latest') }}:specificTag${{ else }}:latestByTag
+      defaultVersionType: $[if(ne(variables['nvda_version'], 'latest'), 'specificTag', 'latestByTag')]
       version: $(nvda_version)
       downloadPath: $(helper_dir)/nvda-portable
   - task: PowerShell@2
