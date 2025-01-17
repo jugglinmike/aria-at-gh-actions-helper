@@ -6,45 +6,8 @@ pool:
   vmImage: windows-latest
 
 variables:
-  - name: empty
-    value: ""
   - name: helper_dir
     value: '$(Agent.BuildDirectory)\helper'
-  - name: callback_url
-    value: ""
-
-parameters:
-  - name: aria_at_ref
-    type: string
-    default: master
-    displayName: ARIA-AT Reference Branch
-  - name: browser
-    type: string
-    default: chrome
-    displayName: Browser to Test
-    values:
-      - chrome
-      - firefox
-  - name: nvda_version
-    type: string
-    default: "latest"
-    displayName: NVDA Version
-  - name: test_pattern
-    type: string
-    default: "{reference/**,test-*-nvda.*}"
-    displayName: Test Pattern
-  - name: work_dir
-    type: string
-    default: "tests/alert"
-    displayName: Working Directory
-  - name: callback_header
-    type: string
-    default: $(empty)
-    displayName: Callback Header
-  - name: status_url
-    type: string
-    default: NONE
-    displayName: Status URL
 
 resources:
   repositories:
@@ -75,47 +38,25 @@ steps:
   # Method borrowed from https://stackoverflow.com/a/63959970
   - task: PowerShell@2
     displayName: Setup env vars
-    env:
-      p_work_dir: ${{ parameters['work_dir'] }}
-      p_test_pattern: ${{ parameters['test_pattern'] }}
-      p_status_url: ${{ parameters['status_url'] }}
-      p_callback_header: ${{ parameters['callback_header'] }}
-      p_browser: ${{ parameters['browser'] }}
-      p_nvda_version: ${{ parameters['nvda_version'] }}
     inputs:
       targetType: inline
       script: |
-        Write-Host "Making inputs available as an environment variable."
-        Write-Host "##vso[task.setvariable variable=ARIA_AT_WORK_DIR;]$env:p_work_dir"
-        Write-Host "ARIA_AT_WORK_DIR: $env:ARIA_AT_WORK_DIR ($env:p_work_dir)"
-        Write-Host "##vso[task.setvariable variable=ARIA_AT_TEST_PATTERN;]$env:p_test_pattern"
-        Write-Host "ARIA_AT_TEST_PATTERN: $env:ARIA_AT_TEST_PATTERN ($env:p_test_pattern)"
-        Write-Host "##vso[task.setvariable variable=ARIA_AT_STATUS_URL;]${{ parameters['status_url'] }}"
-        Write-Host "ARIA_AT_STATUS_URL: $env:ARIA_AT_STATUS_URL (${{ parameters['status_url'] }})"
-        Write-Host "##vso[task.setvariable variable=ARIA_AT_STATUS_URL;]$env:p_status_url"
-        Write-Host "ARIA_AT_STATUS_URL: $env:ARIA_AT_STATUS_URL ($env:p_status_url)"
-        Write-Host "##vso[task.setvariable variable=ARIA_AT_CALLBACK_HEADER;]$env:p_callback_header"
-        Write-Host "ARIA_AT_CALLBACK_HEADER: $env:ARIA_AT_CALLBACK_HEADER ($env:p_callback_header)"
-        Write-Host "##vso[task.setvariable variable=BROWSER;]$env:p_browser"
-        Write-Host "BROWSER: $env:BROWSER ($env:p_browser)"
-        Write-Host "##vso[task.setvariable variable=NVDA_VERSION;]$env:p_nvda_version"
-        Write-Host "NVDA_VERSION: $env:NVDA_VERSION ($env:p_nvda_version)"
+        Write-Host "Making inputs available as environment variables expected by scripts."
+        Write-Host "##vso[task.setvariable variable=ARIA_AT_WORK_DIR;]${env:work_dir}"
+        Write-Host "##vso[task.setvariable variable=ARIA_AT_TEST_PATTERN;]${env:test_pattern}"
+        Write-Host "##vso[task.setvariable variable=ARIA_AT_CALLBACK_URL;]${env:callback_url}"
+        Write-Host "##vso[task.setvariable variable=ARIA_AT_STATUS_URL;]${env:status_url}"
+        Write-Host "##vso[task.setvariable variable=ARIA_AT_CALLBACK_HEADER;]${env:callback_header}"
+        Write-Host "##vso[task.setvariable variable=BROWSER;]${env:browser}"
+        Write-Host "##vso[task.setvariable variable=NVDA_VERSION;]${env:nvda_version}"
 
   - task: UseNode@1
     displayName: Install Node
     inputs:
       version: "20.x"
   - task: PowerShell@2
-    displayName: Debug Parameters
-    inputs:
-      targetType: inline
-      script: |
-        Write-Host "status_url parameter value: ${{ parameters['status_url'] }}"
-        Write-Host "status_url variable value: $env:status_url"
-        Write-Host "Pipeline status: $(Agent.JobStatus)"
-  - task: PowerShell@2
     displayName: Log job state QUEUED
-    condition: ${{ ne(variables['status_url'], '') }}
+    condition: ne(variables.STATUS_URL, '')
     inputs:
       targetType: inline
       script: |
@@ -136,23 +77,23 @@ steps:
     path: helper/aria-at
     displayName: Checkout aria-at
   - task: PowerShell@2
-    displayName: Checkout aria-at to ${{ parameters['aria_at_ref'] }}
+    displayName: Checkout aria-at to $(aria_at_ref)
     inputs:
       targetType: "inline"
       workingDirectory: $(helper_dir)/aria-at
-      script: git checkout ${{ parameters['aria_at_ref'] }}
+      script: git checkout ${env:aria_at_ref}
   - checkout: nvda-at-automation
     path: helper/nvda-at-automation
     displayName: Checkout nvda-at-automation
   - task: DownloadGitHubRelease@0
-    displayName: Download nvda portable ${{ parameters['nvda_version'] }}
+    displayName: Download nvda portable $(nvda_version)
     # https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/reference/download-github-release-v0?view=azure-pipelines
     inputs:
       connection: MyGitHubServiceConnection
       userRepository: bocoup/aria-at-automation-nvda-builds
-      ${{ if ne(parameters['nvda_version'], 'latest')}}:
+      ${{ if ne(variables.nvda_version, 'latest') }}:
         defaultVersionType: specificTag
-        version: ${{ parameters['nvda_version'] }}
+        version: $(nvda_version)
       downloadPath: $(helper_dir)/nvda-portable
   - task: PowerShell@2
     displayName: Setup NVDA_PORTABLE_ZIP
@@ -202,8 +143,7 @@ steps:
       command: "install"
   - task: PowerShell@2
     displayName: Log job state RUNNING
-    # weird syntaxing because parameters only exists in ${{ }} land, but succeeded() doesn't exist there
-    condition: and(succeeded(), ${{ ne(parameters['status_url'], 'NONE') }} )
+    condition: and(succeeded(), ne(variables.status_url, ''))
     inputs:
       targetType: inline
       script: |
@@ -222,8 +162,7 @@ steps:
 
   - task: PowerShell@2
     displayName: Log job state ERROR
-    # weird syntaxing because parameters only exists in ${{ }} land, but failed() doesn't exist there
-    condition: and(failed(), ${{ ne(parameters['status_url'], 'NONE') }} )
+    condition: and(failed(), ne(variables.status_url, ''))
     inputs:
       targetType: inline
       script: |
@@ -233,8 +172,7 @@ steps:
         Invoke-WebRequest $env:ARIA_AT_STATUS_URL -Headers $headers -Method 'POST' -Body $body
   - task: PowerShell@2
     displayName: Log job state COMPLETED
-    # weird syntaxing because parameters only exists in ${{ }} land, but succeeded() doesn't exist there
-    condition: and(succeeded(), ${{ ne(parameters['status_url'], 'NONE') }} )
+    condition: and(succeeded(), ne(variables.status_url, ''))
     inputs:
       targetType: inline
       script: |
