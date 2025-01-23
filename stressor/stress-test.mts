@@ -7,7 +7,7 @@ import wrap from "word-wrap";
 import pLimit from "p-limit";
 import isEqual from "lodash.isequal";
 import { readFile, writeFile } from "node:fs/promises";
-import { Command, InvalidArgumentError } from "commander";
+import { Command, InvalidArgumentError } from "@commander-js/extra-typings";
 
 const DEBUG = process.env.DEBUG === "true" || process.env.DEBUG === "1";
 const limitWorkflows = pLimit(8);
@@ -18,17 +18,7 @@ function parseIntOption(value: string, dummyPrevious: number) {
   }
   return parsedValue;
 }
-const program = new Command()
-  .requiredOption("-o, --owner <string>", "repository owner")
-  .requiredOption("-r, --repo <string>", "repository name")
-  .option("-b, --branch <string>", "Git branch", "main")
-  .option("-f, --results-from-file", "Load results from local 'allResults.json' file")
-  .option("-n, --num-runs <int>", "Number of times to run each test plan", parseIntOption, 5)
-  .option("-p, --port <int>", "Port number on which to bind the local results-accepting server", parseIntOption, 8888);
-program.parse();
-const options = program.opts();
-
-const testPlans = [
+const defaultTestPlans = [
   "tests/menu-button-actions-active-descendant",
   "tests/alert",
   "tests/horizontal-slider",
@@ -40,6 +30,39 @@ const testPlans = [
   "tests/radiogroup-aria-activedescendant",
   "tests/toggle-button",
 ];
+function parseTestPlanOption(value: string, previous: string[]) {
+  if (!value.startsWith("tests/")) {
+    throw new InvalidArgumentError(
+      `Test plan specified without "tests/" directory: "${value}"`
+    );
+  }
+  // When parsing a repeatable option, Commander supplies the default value as
+  // the initial "previous" value. Without special handling like the one below
+  // (which regrettably must rely on Array identity), user-specified values
+  // would be appended to the set of defaults.
+  if (previous === defaultTestPlans) {
+    return [value];
+  }
+  return previous.concat(value);
+}
+
+const program = new Command()
+  .requiredOption("-o, --owner <string>", "repository owner")
+  .requiredOption("-r, --repo <string>", "repository name")
+  .option("-b, --branch <string>", "Git branch", "main")
+  .option("-f, --results-from-file", "Load results from local 'allResults.json' file")
+  .option("-n, --num-runs <int>", "Number of times to run each test plan", parseIntOption, 5)
+  .option("-p, --port <int>", "Port number on which to bind the local results-accepting server", parseIntOption, 8888)
+  .option("-t, --test-plan <string>", "Test plan to run (repeatable)", parseTestPlanOption, defaultTestPlans);
+program.parse();
+const options = program.opts();
+// Rename "options.testPlan" (named for coherence to the CLI user) to
+// "testPlans" (named for accuracy of the value type it holds). (Commander
+// conflates the name of CLI options with the JavaScript property where the
+// corresponding values are stored. This creates tension for repeatable options
+// because the final value is a collection composed of many individual input
+// values.)
+const testPlans = options.testPlan;
 
 // ordered this way because voiceover usually finishes quicker, and when you only
 // have 3 jobs left it matters... :)
