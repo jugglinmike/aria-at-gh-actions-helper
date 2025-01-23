@@ -13,5 +13,8 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+      - run: npm ci
+        working-directory: ./stressor
       - name: Test types
         run: npm run test-types
+        working-directory: ./stressor
