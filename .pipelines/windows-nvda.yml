@@ -9,6 +9,19 @@ variables:
   - name: helper_dir
     value: '$(Agent.BuildDirectory)\helper'
 
+# This pipeline expects the following variables to be defined in the Azure DevOps
+# Web UI and configured to be settable/overridable at "queue time". Some of them have
+# default values which are also here.
+#
+# - aria_at_ref = master
+# - browser = chrome
+# - callback_header
+# - callback_url
+# - nvda_version = latest
+# - status_url
+# - test_pattern = {reference/**,test-*-nvda.*}
+# - work_dir = tests/alert
+
 resources:
   repositories:
     - repository: nvda-at-automation
