@@ -4,20 +4,19 @@
   "description": "Stress test Test Plans via CI workflows",
   "main": "stress-test.mts",
   "scripts": {
-    "cancel-runs": "node --loader ts-node/esm cancel-all-workflows.mts",
+    "cancel-runs": "tsx cancel-all-workflows.mts",
     "test-types": "tsc --noEmit"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@commander-js/extra-typings": "^13.0.0",
     "@octokit/rest": "^21.0.1",
     "@types/lodash.isequal": "^4.5.8",
-    "commander": "^13.0.0",
     "jest-diff": "^29.7.0",
     "lodash.isequal": "^4.5.0",
     "ngrok": "^5.0.0-beta.2",
     "p-limit": "^6.1.0",
-    "ts-node": "^10.9.2",
     "typescript": "^5.5.4",
     "word-wrap": "^1.2.5"
   },
