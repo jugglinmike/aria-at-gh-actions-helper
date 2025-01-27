@@ -33,13 +33,14 @@ on:
         required: false
         type: string
       macos_version:
-        description: "macOS version to run the test on"
+        description: "macOS version to run the test on, defaults to latest supported version"
         required: false
         type: choice
         options:
           - "13"
           - "14"
-        default: "14"
+          - "15"
+        default: "15"
       browser:
         description: |
           The browser to use for testing, "chrome" or "firefox" or "safari", default "safari"
