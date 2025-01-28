@@ -29,5 +29,4 @@ jobs:
       - name: Configure the system to support the AT Driver server
         env:
           DEBUG: "*"
-        working-directory: node_modules/.bin
-        run: ./at-driver install --unattended
+        run: ./install-for-macos.sh
