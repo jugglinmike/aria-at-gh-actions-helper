@@ -23,9 +23,6 @@ jobs:
           cache: "npm"
           cache-dependency-path: "**/package-lock.json"
 
-      - name: Do NOT setup Environment
-        run: echo Pass
-
       - name: Install the macOS AT Driver server package
         run: npm install @bocoup/macos-at-driver-server@"${AT_DRIVER_SERVER_VERSION}"
 
@@ -34,63 +31,3 @@ jobs:
           DEBUG: "*"
         working-directory: node_modules/.bin
         run: ./at-driver install --unattended
-
-      - name: Wait for the AT Driver server to be ready
-        working-directory: node_modules/.bin
-        run: ../../wait-for-server.sh
-
-      - name: Checkout aria-at ref 'master'
-        uses: actions/checkout@v4
-        with:
-          repository: "w3c/aria-at"
-          path: "aria-at"
-          ref: 'master'
-
-      - name: Checkout aria-at-automation-harness
-        uses: actions/checkout@v4
-        with:
-          repository: "w3c/aria-at-automation-harness"
-          path: "aria-at-automation-harness"
-
-      - name: "aria-at: npm install"
-        working-directory: aria-at
-        run: npm install
-
-      - name: "aria-at: npm run build"
-        working-directory: aria-at
-        run: npm run build
-
-      - name: "automation-harness: npm install"
-        working-directory: aria-at-automation-harness
-        run: npm install
-
-      - name: Start VoiceOver
-        run: "/System/Library/CoreServices/VoiceOver.app/Contents/MacOS/VoiceOverStarter"
-
-        # This feature must be enabled in order for the harness to inspect the
-        # the page (AppleScript is used for this purpose instead of
-        # SafariDriver because SafariDriver implements a "glass pane" which
-        # rejects the kinds of interactions--namely, key presses--that ARIA-AT
-        # tests must simulate).
-        # https://stackoverflow.com/questions/37802673/allow-javascript-from-apple-events-in-safari-through-terminal-mac
-      - name: Configure Safari to Allow JavaScript from Apple Events
-        run: defaults write -app Safari AllowJavaScriptFromAppleEvents 1
-
-        # Ensure that VoiceOver doesn't automatically read through the entirety of
-        # a webpage when its loaded and there isn't immediate keyboard interaction.
-        # This is turned on by default for some versions of MacOS
-        # https://support.apple.com/guide/voiceover/general-cpvouwebpageloading/mac
-      - name: Configure VoiceOver not to "Automatically Speak Web Page"
-        run: defaults write com.apple.VoiceOver4/default SCRCUserDefaultsAutomaticallySpeakWebPage 0
-
-      - name: Run harness
-        run: ./run-tester.sh
-
-      - name: upload *.{log,png}
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: logs
-          path: |
-            *.log
-            *.png
