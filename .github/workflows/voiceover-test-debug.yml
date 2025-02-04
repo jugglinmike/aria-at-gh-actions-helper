@@ -11,7 +11,7 @@ env:
 
 jobs:
   voiceover-test:
-    runs-on: [macos-14, macos-15]
+    runs-on: macos-15
     steps:
       # Checkout all repos first (helps cache purposes)
       - uses: actions/checkout@v4
